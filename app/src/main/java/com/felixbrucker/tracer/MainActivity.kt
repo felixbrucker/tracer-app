@@ -86,8 +86,20 @@ fun TracerApp() {
             startDestination = NavigationItem.LiveMtr.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(NavigationItem.LiveMtr.route) {
+            composable(
+                route = "${NavigationItem.LiveMtr.route}?host={host}",
+                arguments = listOf(androidx.navigation.navArgument("host") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                })
+            ) { backStackEntry ->
                 val vm: LiveMtrViewModel = hiltViewModel()
+                val hostArg = backStackEntry.arguments?.getString("host")
+                androidx.compose.runtime.LaunchedEffect(hostArg) {
+                    if (!hostArg.isNullOrBlank()) {
+                        vm.onHostChanged(hostArg)
+                    }
+                }
                 val uiState by vm.uiState.collectAsState()
                 LiveMtrScreen(
                     uiState = uiState,
@@ -100,8 +112,20 @@ fun TracerApp() {
                     onToggleFavorite = vm::toggleFavorite
                 )
             }
-            composable(NavigationItem.Traceroute.route) {
+            composable(
+                route = "${NavigationItem.Traceroute.route}?host={host}",
+                arguments = listOf(androidx.navigation.navArgument("host") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                })
+            ) { backStackEntry ->
                 val vm: TracerouteViewModel = hiltViewModel()
+                val hostArg = backStackEntry.arguments?.getString("host")
+                androidx.compose.runtime.LaunchedEffect(hostArg) {
+                    if (!hostArg.isNullOrBlank()) {
+                        vm.onHostChanged(hostArg)
+                    }
+                }
                 val uiState by vm.uiState.collectAsState()
                 TracerouteScreen(
                     uiState = uiState,
@@ -111,8 +135,20 @@ fun TracerApp() {
                     onToggleFavorite = vm::toggleFavorite
                 )
             }
-            composable(NavigationItem.Ping.route) {
+            composable(
+                route = "${NavigationItem.Ping.route}?host={host}",
+                arguments = listOf(androidx.navigation.navArgument("host") {
+                    type = androidx.navigation.NavType.StringType
+                    nullable = true
+                })
+            ) { backStackEntry ->
                 val vm: PingViewModel = hiltViewModel()
+                val hostArg = backStackEntry.arguments?.getString("host")
+                androidx.compose.runtime.LaunchedEffect(hostArg) {
+                    if (!hostArg.isNullOrBlank()) {
+                        vm.onHostChanged(hostArg)
+                    }
+                }
                 val uiState by vm.uiState.collectAsState()
                 PingScreen(
                     uiState = uiState,
@@ -125,9 +161,6 @@ fun TracerApp() {
             composable(NavigationItem.Favorites.route) {
                 val vm: FavoritesViewModel = hiltViewModel()
                 val favorites by vm.favorites.collectAsState()
-                val mtrVm: LiveMtrViewModel = hiltViewModel()
-                val tracerouteVm: TracerouteViewModel = hiltViewModel()
-                val pingVm: PingViewModel = hiltViewModel()
 
                 FavoritesScreen(
                     favorites = favorites,
@@ -136,16 +169,13 @@ fun TracerApp() {
                     onLaunchTarget = { target ->
                         when (target.defaultMode) {
                             TraceMode.LIVE_MTR -> {
-                                mtrVm.onHostChanged(target.host)
-                                navController.navigate(NavigationItem.LiveMtr.route)
+                                navController.navigate("${NavigationItem.LiveMtr.route}?host=${target.host}")
                             }
                             TraceMode.REGULAR_TRACEROUTE -> {
-                                tracerouteVm.onHostChanged(target.host)
-                                navController.navigate(NavigationItem.Traceroute.route)
+                                navController.navigate("${NavigationItem.Traceroute.route}?host=${target.host}")
                             }
                             TraceMode.PING -> {
-                                pingVm.onHostChanged(target.host)
-                                navController.navigate(NavigationItem.Ping.route)
+                                navController.navigate("${NavigationItem.Ping.route}?host=${target.host}")
                             }
                         }
                     }
