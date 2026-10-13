@@ -1,5 +1,7 @@
 package com.felixbrucker.tracer.core.data
 
+import com.felixbrucker.tracer.core.datastore.AppSettingsRepository
+import com.felixbrucker.tracer.core.datastore.TracerSettings
 import com.felixbrucker.tracer.core.model.HopResult
 import com.felixbrucker.tracer.core.model.MtrHopStats
 import com.felixbrucker.tracer.core.model.PingResult
@@ -9,12 +11,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class TraceRepository @Inject constructor(
-    private val networkEngine: NetworkEngine
+    private val networkEngine: NetworkEngine,
+    private val appSettingsRepository: AppSettingsRepository
 ) {
 
     private val _pingResults = MutableStateFlow<List<PingResult>>(emptyList())
@@ -32,25 +36,28 @@ class TraceRepository @Inject constructor(
     private val _activeTarget = MutableStateFlow<String?>(null)
     val activeTarget: StateFlow<String?> = _activeTarget.asStateFlow()
 
-    fun runPingStream(target: String): Flow<PingResult> {
+    suspend fun runPingStream(target: String): Flow<PingResult> {
+        val settings = appSettingsRepository.tracerSettings.first()
         _activeTarget.value = target
         _activeTraceType.value = TraceType.PING
         _pingResults.value = emptyList()
-        return networkEngine.executePingStream(target)
+        return networkEngine.executePingStream(target, settings = settings)
     }
 
-    fun runTracerouteStream(target: String): Flow<HopResult> {
+    suspend fun runTracerouteStream(target: String): Flow<HopResult> {
+        val settings = appSettingsRepository.tracerSettings.first()
         _activeTarget.value = target
         _activeTraceType.value = TraceType.TRACEROUTE
         _tracerouteHops.value = emptyList()
-        return networkEngine.executeTracerouteStream(target)
+        return networkEngine.executeTracerouteStream(target, settings = settings)
     }
 
-    fun runWinMtrStream(target: String): Flow<List<MtrHopStats>> {
+    suspend fun runWinMtrStream(target: String): Flow<List<MtrHopStats>> {
+        val settings = appSettingsRepository.tracerSettings.first()
         _activeTarget.value = target
         _activeTraceType.value = TraceType.MTR
         _winMtrStats.value = emptyList()
-        return networkEngine.executeWinMtrStream(target)
+        return networkEngine.executeWinMtrStream(target, settings = settings)
     }
 
     fun updatePingResult(result: PingResult) {

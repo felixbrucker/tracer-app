@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.felixbrucker.tracer.core.data.FavoriteRepository
 import com.felixbrucker.tracer.core.data.TraceRepository
 import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
+import com.felixbrucker.tracer.core.datastore.AppSettingsRepository
+import com.felixbrucker.tracer.core.datastore.TracerSettings
 import com.felixbrucker.tracer.core.model.HopResult
 import com.felixbrucker.tracer.core.model.MtrHopStats
 import com.felixbrucker.tracer.core.model.PingResult
@@ -19,11 +21,15 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val traceRepository: TraceRepository,
-    private val favoriteRepository: FavoriteRepository
+    private val favoriteRepository: FavoriteRepository,
+    private val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {
 
     val favorites: StateFlow<List<FavoriteTargetEntity>> = favoriteRepository.favorites
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val tracerSettings: StateFlow<TracerSettings> = appSettingsRepository.tracerSettings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TracerSettings())
 
     val pingResults: StateFlow<List<PingResult>> = traceRepository.pingResults
     val tracerouteHops: StateFlow<List<HopResult>> = traceRepository.tracerouteHops
@@ -47,6 +53,24 @@ class MainViewModel @Inject constructor(
     fun removeFavorite(id: Long) {
         viewModelScope.launch {
             favoriteRepository.removeFavorite(id)
+        }
+    }
+
+    fun updatePingIntervalMs(intervalMs: Long) {
+        viewModelScope.launch {
+            appSettingsRepository.updatePingIntervalMs(intervalMs)
+        }
+    }
+
+    fun updatePingTimeoutSec(timeoutSec: Int) {
+        viewModelScope.launch {
+            appSettingsRepository.updatePingTimeoutSec(timeoutSec)
+        }
+    }
+
+    fun updateMaxHops(maxHops: Int) {
+        viewModelScope.launch {
+            appSettingsRepository.updateMaxHops(maxHops)
         }
     }
 }

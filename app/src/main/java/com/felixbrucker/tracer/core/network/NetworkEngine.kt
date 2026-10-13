@@ -1,5 +1,6 @@
 package com.felixbrucker.tracer.core.network
 
+import com.felixbrucker.tracer.core.datastore.TracerSettings
 import com.felixbrucker.tracer.core.model.HopResult
 import com.felixbrucker.tracer.core.model.MtrHopStats
 import com.felixbrucker.tracer.core.model.PingResult
@@ -22,32 +23,39 @@ class NetworkEngine @Inject constructor() {
 
     private val reverseDnsCache = ConcurrentHashMap<String, String>()
 
-    fun executePingStream(target: String, count: Int = Int.MAX_VALUE, intervalMs: Long = 1000L): Flow<PingResult> = flow {
+    fun executePingStream(
+        target: String,
+        count: Int = Int.MAX_VALUE,
+        settings: TracerSettings = TracerSettings()
+    ): Flow<PingResult> = flow {
         var sequence = 1
         val resolvedIp = resolveHost(target)
 
         while (currentCoroutineContext().isActive && sequence <= count) {
             val startTime = System.currentTimeMillis()
-            val pingResult = runSinglePing(target, resolvedIp, sequence)
+            val pingResult = runSinglePing(target, resolvedIp, sequence, settings.pingTimeoutSec)
             emit(pingResult)
 
             sequence++
             val elapsed = System.currentTimeMillis() - startTime
-            val sleepTime = intervalMs - elapsed
+            val sleepTime = settings.pingIntervalMs - elapsed
             if (sleepTime > 0) {
                 delay(sleepTime)
             }
         }
     }.flowOn(Dispatchers.IO)
 
-    fun executeTracerouteStream(target: String, maxHops: Int = 30): Flow<HopResult> = flow {
+    fun executeTracerouteStream(
+        target: String,
+        settings: TracerSettings = TracerSettings()
+    ): Flow<HopResult> = flow {
         val resolvedIp = resolveHost(target)
         var reachedDestination = false
 
-        for (ttl in 1..maxHops) {
+        for (ttl in 1..settings.maxHops) {
             if (!currentCoroutineContext().isActive || reachedDestination) break
 
-            val hop = runSingleProbeWithTtl(target, ttl)
+            val hop = runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
             emit(hop)
 
             if (hop.isFinalDestination || (resolvedIp != null && hop.ipAddress == resolvedIp)) {
@@ -56,9 +64,12 @@ class NetworkEngine @Inject constructor() {
         }
     }.flowOn(Dispatchers.IO)
 
-    fun executeWinMtrStream(target: String, maxHops: Int = 30, intervalMs: Long = 1000L): Flow<List<MtrHopStats>> = flow {
+    fun executeWinMtrStream(
+        target: String,
+        settings: TracerSettings = TracerSettings()
+    ): Flow<List<MtrHopStats>> = flow {
         val statsMap = mutableMapOf<Int, MtrHopStats>()
-        for (i in 1..maxHops) {
+        for (i in 1..settings.maxHops) {
             statsMap[i] = MtrHopStats(hopNumber = i)
         }
 
@@ -70,7 +81,7 @@ class NetworkEngine @Inject constructor() {
             for (ttl in 1..activeMaxHops) {
                 if (!currentCoroutineContext().isActive) break
 
-                val probe = runSingleProbeWithTtl(target, ttl)
+                val probe = runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
                 val currentStat = statsMap[ttl] ?: MtrHopStats(hopNumber = ttl)
 
                 val newSent = currentStat.sent + 1
@@ -112,17 +123,17 @@ class NetworkEngine @Inject constructor() {
             emit(currentStatsList)
 
             val elapsed = System.currentTimeMillis() - cycleStartTime
-            val sleepTime = intervalMs - elapsed
+            val sleepTime = settings.pingIntervalMs - elapsed
             if (sleepTime > 0) {
                 delay(sleepTime)
             }
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun runSinglePing(target: String, resolvedIp: String?, sequence: Int): PingResult {
+    private fun runSinglePing(target: String, resolvedIp: String?, sequence: Int, timeoutSec: Int): PingResult {
         return try {
             val startMs = System.currentTimeMillis()
-            val process = Runtime.getRuntime().exec("ping -c 1 -w 2 $target")
+            val process = Runtime.getRuntime().exec("ping -c 1 -w $timeoutSec $target")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var rttMs: Double? = null
@@ -165,10 +176,10 @@ class NetworkEngine @Inject constructor() {
         }
     }
 
-    private fun runSingleProbeWithTtl(target: String, ttl: Int): HopResult {
+    private fun runSingleProbeWithTtl(target: String, ttl: Int, timeoutSec: Int): HopResult {
         return try {
             val startMs = System.currentTimeMillis()
-            val process = Runtime.getRuntime().exec("ping -c 1 -t $ttl -w 2 $target")
+            val process = Runtime.getRuntime().exec("ping -c 1 -t $ttl -w $timeoutSec $target")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var ipAddress: String? = null

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -40,6 +41,7 @@ import com.felixbrucker.tracer.feature.components.TargetInputField
 import com.felixbrucker.tracer.feature.favorites.FavoritesScreenContent
 import com.felixbrucker.tracer.feature.main.MainViewModel
 import com.felixbrucker.tracer.feature.ping.PingScreenContent
+import com.felixbrucker.tracer.feature.settings.SettingsScreenContent
 import com.felixbrucker.tracer.feature.traceroute.TracerouteScreenContent
 import com.felixbrucker.tracer.feature.winmtr.WinMtrScreenContent
 import dagger.hilt.android.AndroidEntryPoint
@@ -92,6 +94,7 @@ fun TracerAppScreen(
     val tracerouteHops by viewModel.tracerouteHops.collectAsState()
     val winMtrStats by viewModel.winMtrStats.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
+    val tracerSettings by viewModel.tracerSettings.collectAsState()
     val activeTraceType by viewModel.activeTraceType.collectAsState()
 
     val isRunning = activeTraceType != null
@@ -134,6 +137,12 @@ fun TracerAppScreen(
                     icon = { Icon(Icons.Default.Bookmark, contentDescription = "Favorites") },
                     label = { Text("Favorites") }
                 )
+                NavigationBarItem(
+                    selected = selectedTab == 4,
+                    onClick = { selectedTab = 4 },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                    label = { Text("Settings") }
+                )
             }
         }
     ) { innerPadding ->
@@ -142,7 +151,7 @@ fun TracerAppScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (selectedTab != 3) {
+            if (selectedTab in 0..2) {
                 TargetInputField(
                     target = targetHost,
                     onTargetChange = { targetHost = it },
@@ -188,6 +197,12 @@ fun TracerAppScreen(
                     onRemoveFavorite = { id ->
                         viewModel.removeFavorite(id)
                     }
+                )
+                4 -> SettingsScreenContent(
+                    settings = tracerSettings,
+                    onUpdatePingIntervalMs = { viewModel.updatePingIntervalMs(it) },
+                    onUpdatePingTimeoutSec = { viewModel.updatePingTimeoutSec(it) },
+                    onUpdateMaxHops = { viewModel.updateMaxHops(it) }
                 )
             }
         }

@@ -2,6 +2,8 @@ package com.felixbrucker.tracer.feature.main
 
 import com.felixbrucker.tracer.core.data.FavoriteRepository
 import com.felixbrucker.tracer.core.data.TraceRepository
+import com.felixbrucker.tracer.core.datastore.AppSettingsRepository
+import com.felixbrucker.tracer.core.datastore.TracerSettings
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -36,9 +38,11 @@ class MainViewModelTest {
     fun testAddFavoriteInvokesRepository() = runTest {
         val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
         val traceRepoMock = mockk<TraceRepository>(relaxed = true)
+        val settingsRepoMock = mockk<AppSettingsRepository>(relaxed = true)
         coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
+        coEvery { settingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
         coEvery { favoriteRepoMock.addFavorite("Test", "127.0.0.1") } returns 1L
-        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock)
+        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock, settingsRepoMock)
 
         viewModel.addFavorite("Test", "127.0.0.1")
         advanceUntilIdle()
@@ -50,9 +54,11 @@ class MainViewModelTest {
     fun testRemoveFavoriteInvokesRepository() = runTest {
         val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
         val traceRepoMock = mockk<TraceRepository>(relaxed = true)
+        val settingsRepoMock = mockk<AppSettingsRepository>(relaxed = true)
         coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
+        coEvery { settingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
         coEvery { favoriteRepoMock.removeFavorite(5L) } returns Unit
-        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock)
+        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock, settingsRepoMock)
 
         viewModel.removeFavorite(5L)
         advanceUntilIdle()
