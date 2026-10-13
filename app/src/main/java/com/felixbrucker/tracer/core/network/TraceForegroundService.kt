@@ -98,7 +98,7 @@ class TraceForegroundService : Service() {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        postSummaryNotification("Ping $target Error", e.message ?: "Failed")
+                        postSummaryNotification("Ping Summary for $target", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
@@ -114,17 +114,21 @@ class TraceForegroundService : Service() {
                     .onCompletion {
                         val hops = traceRepository.tracerouteHops.value
                         val reached = hops.lastOrNull()?.isFinalDestination == true
-                        val finishedSummary = if (reached) {
-                            "Traceroute reached target $target in ${hops.size} hops (${hops.lastOrNull()?.ipAddress})"
+                        val rtts = hops.mapNotNull { it.rttMs }
+                        val avgRtt = if (rtts.isNotEmpty()) rtts.average() else 0.0
+                        val destHop = hops.lastOrNull()
+
+                        val finishedSummary = if (reached && destHop != null) {
+                            "Destination reached in ${hops.size} hops | Final RTT: ${"%.1f".format(destHop.rttMs ?: 0.0)} ms | Path Avg RTT: ${"%.1f".format(avgRtt)} ms"
                         } else {
-                            "Traceroute stopped after ${hops.size} hops"
+                            "Stopped after ${hops.size} hops | Path Avg RTT: ${"%.1f".format(avgRtt)} ms"
                         }
                         postSummaryNotification("Traceroute Summary for $target", finishedSummary)
                         traceRepository.clearActiveTrace()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        postSummaryNotification("Traceroute $target Error", e.message ?: "Failed")
+                        postSummaryNotification("Traceroute Summary for $target", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
@@ -146,16 +150,16 @@ class TraceForegroundService : Service() {
                         val stats = traceRepository.winMtrStats.value
                         val destHop = stats.lastOrNull { it.sent > 0 }
                         val summaryText = if (destHop != null) {
-                            "MTR session ended for $target (${stats.size} hops) | Final Hop Loss: ${"%.0f".format(destHop.lossPercentage)}%, Avg RTT: ${"%.1f".format(destHop.avgRttMs)} ms"
+                            "Hops: ${stats.size} | Probes: ${destHop.sent} | Final Loss: ${"%.0f".format(destHop.lossPercentage)}% | Avg RTT: ${"%.1f".format(destHop.avgRttMs)} ms | Best/Worst: ${"%.0f".format(destHop.bestRttMs)}/${"%.0f".format(destHop.worstRttMs)} ms"
                         } else {
-                            "MTR session ended for $target"
+                            "Session ended after tracing ${stats.size} hops"
                         }
                         postSummaryNotification("MTR Summary for $target", summaryText)
                         traceRepository.clearActiveTrace()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        postSummaryNotification("MTR $target Error", e.message ?: "Failed")
+                        postSummaryNotification("MTR Summary for $target", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                     }
