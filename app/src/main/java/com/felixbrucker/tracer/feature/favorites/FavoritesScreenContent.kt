@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -43,10 +44,12 @@ fun FavoritesScreenContent(
     favorites: List<FavoriteTargetEntity>,
     onStartTraceWithType: (String, TraceType) -> Unit,
     onAddFavorite: (String?, String) -> Unit,
+    onUpdateFavorite: (Long, String?, String) -> Unit,
     onRemoveFavorite: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    var favoriteToEdit by remember { mutableStateOf<FavoriteTargetEntity?>(null) }
     var favoriteForTypeSelection by remember { mutableStateOf<FavoriteTargetEntity?>(null) }
 
     Scaffold(
@@ -78,6 +81,7 @@ fun FavoritesScreenContent(
                     FavoriteItemCard(
                         favorite = favorite,
                         onSelect = { favoriteForTypeSelection = favorite },
+                        onEdit = { favoriteToEdit = favorite },
                         onDelete = { onRemoveFavorite(favorite.id) }
                     )
                 }
@@ -90,6 +94,17 @@ fun FavoritesScreenContent(
                 onAdd = { title, host ->
                     onAddFavorite(title, host)
                     showAddDialog = false
+                }
+            )
+        }
+
+        favoriteToEdit?.let { favorite ->
+            EditFavoriteDialog(
+                favorite = favorite,
+                onDismiss = { favoriteToEdit = null },
+                onSave = { title, host ->
+                    onUpdateFavorite(favorite.id, title, host)
+                    favoriteToEdit = null
                 }
             )
         }
@@ -111,6 +126,7 @@ fun FavoritesScreenContent(
 fun FavoriteItemCard(
     favorite: FavoriteTargetEntity,
     onSelect: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -148,6 +164,9 @@ fun FavoriteItemCard(
             }
             IconButton(onClick = onSelect) {
                 Icon(Icons.Default.PlayArrow, contentDescription = "Start Trace")
+            }
+            IconButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Favorite")
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete Favorite")
@@ -188,6 +207,51 @@ fun AddFavoriteDialog(
         confirmButton = {
             TextButton(
                 onClick = { if (host.isNotBlank()) onAdd(title.ifBlank { null }, host) }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditFavoriteDialog(
+    favorite: FavoriteTargetEntity,
+    onDismiss: () -> Unit,
+    onSave: (String?, String) -> Unit
+) {
+    var title by remember { mutableStateOf(favorite.title ?: "") }
+    var host by remember { mutableStateOf(favorite.host) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Favorite Target") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Name / Title (Optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = host,
+                    onValueChange = { host = it },
+                    label = { Text("Host or IP") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (host.isNotBlank()) onSave(title.ifBlank { null }, host) }
             ) {
                 Text("Save")
             }

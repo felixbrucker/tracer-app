@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -15,6 +16,9 @@ interface FavoriteTargetDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFavorite(favorite: FavoriteTargetEntity): Long
+
+    @Update
+    suspend fun updateFavorite(favorite: FavoriteTargetEntity)
 
     @Delete
     suspend fun deleteFavorite(favorite: FavoriteTargetEntity)

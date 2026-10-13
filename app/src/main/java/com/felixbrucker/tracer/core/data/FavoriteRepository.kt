@@ -20,6 +20,15 @@ class FavoriteRepository @Inject constructor(
         return favoriteTargetDao.insertFavorite(entity)
     }
 
+    suspend fun updateFavorite(id: Long, title: String?, host: String) {
+        val entity = FavoriteTargetEntity(
+            id = id,
+            title = if (title.isNullOrBlank()) null else title,
+            host = host
+        )
+        favoriteTargetDao.updateFavorite(entity)
+    }
+
     suspend fun removeFavorite(id: Long) {
         favoriteTargetDao.deleteFavoriteById(id)
     }

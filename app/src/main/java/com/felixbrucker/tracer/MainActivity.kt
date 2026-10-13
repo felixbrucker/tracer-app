@@ -182,6 +182,9 @@ fun TracerAppScreen(
                     onAddFavorite = { title, host ->
                         viewModel.addFavorite(title, host)
                     },
+                    onUpdateFavorite = { id, title, host ->
+                        viewModel.updateFavorite(id, title, host)
+                    },
                     onRemoveFavorite = { id ->
                         viewModel.removeFavorite(id)
                     }

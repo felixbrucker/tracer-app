@@ -138,8 +138,10 @@ fun PingItemCard(ping: PingResult) {
         !ping.isSuccess -> MaterialTheme.colorScheme.error
         ping.rttMs == null -> MaterialTheme.colorScheme.onSurface
         ping.rttMs < 50.0 -> Color(0xFF2E7D32)
-        ping.rttMs < 150.0 -> Color(0xFFF57F17)
-        else -> Color(0xFFD84315)
+        ping.rttMs < 150.0 -> Color(0xFFFBC02D)
+        ping.rttMs < 300.0 -> Color(0xFFFF9800)
+        ping.rttMs < 500.0 -> Color(0xFFF57C00)
+        else -> Color(0xFFD32F2F)
     }
 
     Card(

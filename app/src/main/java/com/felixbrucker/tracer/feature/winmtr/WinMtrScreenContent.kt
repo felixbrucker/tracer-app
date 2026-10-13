@@ -106,8 +106,10 @@ fun WinMtrHopCard(stat: MtrHopStats) {
     fun getRttColor(rtt: Double): Color = when {
         rtt == 0.0 -> Color.Unspecified
         rtt < 50.0 -> Color(0xFF2E7D32)
-        rtt < 150.0 -> Color(0xFFF57F17)
-        else -> Color(0xFFD84315)
+        rtt < 150.0 -> Color(0xFFFBC02D)
+        rtt < 300.0 -> Color(0xFFFF9800)
+        rtt < 500.0 -> Color(0xFFF57C00)
+        else -> Color(0xFFD32F2F)
     }
 
     val displayHost = if (!stat.hostName.isNullOrBlank() && stat.hostName != "*" && stat.hostName != stat.ipAddress) {

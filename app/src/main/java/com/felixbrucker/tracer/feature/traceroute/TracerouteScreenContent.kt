@@ -73,8 +73,10 @@ fun HopItemCard(hop: HopResult) {
     val rttColor = when {
         hop.isTimeout || rtt == null -> MaterialTheme.colorScheme.error
         rtt < 50.0 -> Color(0xFF2E7D32)
-        rtt < 150.0 -> Color(0xFFF57F17)
-        else -> Color(0xFFD84315)
+        rtt < 150.0 -> Color(0xFFFBC02D)
+        rtt < 300.0 -> Color(0xFFFF9800)
+        rtt < 500.0 -> Color(0xFFF57C00)
+        else -> Color(0xFFD32F2F)
     }
 
     val displayHostName = hop.hostName

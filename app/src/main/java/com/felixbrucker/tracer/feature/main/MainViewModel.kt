@@ -38,6 +38,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun updateFavorite(id: Long, title: String?, host: String) {
+        viewModelScope.launch {
+            favoriteRepository.updateFavorite(id, title, host)
+        }
+    }
+
     fun removeFavorite(id: Long) {
         viewModelScope.launch {
             favoriteRepository.removeFavorite(id)
