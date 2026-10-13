@@ -14,9 +14,34 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            storeFile = if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
+                file(keystorePath)
+            } else {
+                file("${rootDir}/release.keystore")
+            }
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+        getByName("debug") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            storeFile = if (!keystorePath.isNullOrBlank() && file(keystorePath).exists()) {
+                file(keystorePath)
+            } else {
+                file("${rootDir}/debug.keystore")
+            }
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "androiddebugkey"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+        }
     }
 
     buildTypes {
@@ -26,6 +51,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
