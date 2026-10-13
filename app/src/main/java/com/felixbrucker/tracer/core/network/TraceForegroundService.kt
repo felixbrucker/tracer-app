@@ -48,12 +48,12 @@ class TraceForegroundService : Service() {
         val traceType = TraceType.valueOf(typeName)
 
         createNotificationChannel()
-        val initialNotification = buildNotification("Starting $traceType to $target", "Initializing...", isFinished = false)
+        val initialNotification = buildOngoingNotification("Starting $traceType to $target", "Initializing...")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            startForeground(ONGOING_NOTIFICATION_ID, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
-            startForeground(NOTIFICATION_ID, initialNotification)
+            startForeground(ONGOING_NOTIFICATION_ID, initialNotification)
         }
 
         startTracing(target, traceType)
@@ -72,12 +72,14 @@ class TraceForegroundService : Service() {
                         val pingList = traceRepository.pingResults.value
                         val sent = pingList.size
                         val recv = pingList.count { it.isSuccess }
+                        val lost = sent - recv
+                        val lossPct = if (sent == 0) 0.0 else (lost.toDouble() / sent.toDouble()) * 100.0
                         val statusText = if (pingResult.isSuccess) {
-                            "Online • Seq ${pingResult.sequence}: ${pingResult.rttMs?.let { "%.1f".format(it) }} ms (Recv $recv/$sent)"
+                            "Seq ${pingResult.sequence}: ${pingResult.rttMs?.let { "%.1f".format(it) }} ms | Recv: $recv/$sent (Loss: ${"%.0f".format(lossPct)}%)"
                         } else {
-                            "Unreachable • Seq ${pingResult.sequence}: Timed out (Recv $recv/$sent)"
+                            "Seq ${pingResult.sequence}: Timed out | Recv: $recv/$sent (Loss: ${"%.0f".format(lossPct)}%)"
                         }
-                        updateNotification("Ping $target", statusText, isFinished = false)
+                        updateOngoingNotification("Ping $target", statusText)
                     }
                     .onCompletion {
                         val pingList = traceRepository.pingResults.value
@@ -85,17 +87,20 @@ class TraceForegroundService : Service() {
                         val recv = pingList.count { it.isSuccess }
                         val lost = sent - recv
                         val lossPct = if (sent == 0) 0.0 else (lost.toDouble() / sent.toDouble()) * 100.0
-                        val avgRtt = pingList.mapNotNull { it.rttMs }.let { if (it.isNotEmpty()) it.average() else 0.0 }
-                        val isOnline = pingList.lastOrNull()?.isSuccess == true
+                        val rtts = pingList.mapNotNull { it.rttMs }
+                        val avgRtt = if (rtts.isNotEmpty()) rtts.average() else 0.0
+                        val minRtt = rtts.minOrNull() ?: 0.0
+                        val maxRtt = rtts.maxOrNull() ?: 0.0
 
-                        val finishedSummary = "Target ${if (isOnline) "Online" else "Offline"} • Sent: $sent, Recv: $recv, Loss: ${"%.0f".format(lossPct)}%, Avg RTT: ${"%.1f".format(avgRtt)} ms"
-                        updateNotification("Ping Finished for $target", finishedSummary, isFinished = true)
+                        val finishedSummary = "Sent: $sent, Recv: $recv, Lost: $lost (${"%.0f".format(lossPct)}% loss) | RTT Min/Avg/Max: ${"%.1f".format(minRtt)}/${"%.1f".format(avgRtt)}/${"%.1f".format(maxRtt)} ms"
+                        postSummaryNotification("Ping Summary for $target", finishedSummary)
                         traceRepository.clearActiveTrace()
-                        stopForeground(STOP_FOREGROUND_DETACH)
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        updateNotification("Ping $target Error", e.message ?: "Failed", isFinished = true)
+                        postSummaryNotification("Ping $target Error", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .launchIn(serviceScope)
             }
@@ -104,23 +109,24 @@ class TraceForegroundService : Service() {
                     .onEach { hop ->
                         traceRepository.updateTracerouteHop(hop)
                         val status = "Hop ${hop.hopNumber}: ${hop.ipAddress} (${if (hop.isTimeout) "Timeout" else "${hop.rttMs?.let { "%.1f".format(it) }} ms"})"
-                        updateNotification("Traceroute $target", status, isFinished = false)
+                        updateOngoingNotification("Traceroute $target", status)
                     }
                     .onCompletion {
                         val hops = traceRepository.tracerouteHops.value
                         val reached = hops.lastOrNull()?.isFinalDestination == true
                         val finishedSummary = if (reached) {
-                            "Traceroute Completed to $target in ${hops.size} hops (${hops.lastOrNull()?.ipAddress})"
+                            "Traceroute reached target $target in ${hops.size} hops (${hops.lastOrNull()?.ipAddress})"
                         } else {
-                            "Traceroute Stopped after ${hops.size} hops"
+                            "Traceroute stopped after ${hops.size} hops"
                         }
-                        updateNotification("Traceroute Finished", finishedSummary, isFinished = true)
+                        postSummaryNotification("Traceroute Summary for $target", finishedSummary)
                         traceRepository.clearActiveTrace()
-                        stopForeground(STOP_FOREGROUND_DETACH)
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        updateNotification("Traceroute $target Error", e.message ?: "Failed", isFinished = true)
+                        postSummaryNotification("Traceroute $target Error", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .launchIn(serviceScope)
             }
@@ -129,34 +135,42 @@ class TraceForegroundService : Service() {
                     .onEach { stats ->
                         traceRepository.updateWinMtrStats(stats)
                         val destHop = stats.lastOrNull { it.sent > 0 }
-                        val isOnline = destHop != null && destHop.received > 0
                         val status = if (destHop != null) {
-                            "Target ${if (isOnline) "Online" else "Unreachable"} • Hops: ${stats.size} | Loss: ${"%.0f".format(destHop.lossPercentage)}% | Avg: ${"%.1f".format(destHop.avgRttMs)} ms"
+                            "Hops: ${stats.size} | Loss: ${"%.0f".format(destHop.lossPercentage)}% | Last RTT: ${"%.1f".format(destHop.lastRttMs)} ms"
                         } else {
                             "Tracing path to $target..."
                         }
-                        updateNotification("MTR Live $target", status, isFinished = false)
+                        updateOngoingNotification("MTR Live $target", status)
                     }
                     .onCompletion {
+                        val stats = traceRepository.winMtrStats.value
+                        val destHop = stats.lastOrNull { it.sent > 0 }
+                        val summaryText = if (destHop != null) {
+                            "MTR session ended for $target (${stats.size} hops) | Final Hop Loss: ${"%.0f".format(destHop.lossPercentage)}%, Avg RTT: ${"%.1f".format(destHop.avgRttMs)} ms"
+                        } else {
+                            "MTR session ended for $target"
+                        }
+                        postSummaryNotification("MTR Summary for $target", summaryText)
                         traceRepository.clearActiveTrace()
-                        stopForeground(STOP_FOREGROUND_DETACH)
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .catch { e ->
-                        updateNotification("MTR $target Error", e.message ?: "Failed", isFinished = true)
+                        postSummaryNotification("MTR $target Error", e.message ?: "Failed")
                         traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                     }
                     .launchIn(serviceScope)
             }
         }
     }
 
-    private fun updateNotification(title: String, content: String, isFinished: Boolean) {
-        val notification = buildNotification(title, content, isFinished)
+    private fun updateOngoingNotification(title: String, content: String) {
+        val notification = buildOngoingNotification(title, content)
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(ONGOING_NOTIFICATION_ID, notification)
     }
 
-    private fun buildNotification(title: String, content: String, isFinished: Boolean): Notification {
+    private fun buildOngoingNotification(title: String, content: String): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -164,29 +178,46 @@ class TraceForegroundService : Service() {
             this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val stopIntent = Intent(this, TraceForegroundService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
+            .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+            .build()
+    }
 
-        if (!isFinished) {
-            val stopIntent = Intent(this, TraceForegroundService::class.java).apply {
-                action = ACTION_STOP
-            }
-            val stopPendingIntent = PendingIntent.getService(
-                this, 1, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.setOngoing(true)
-                .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
-        } else {
-            builder.setOngoing(false)
-                .setAutoCancel(true)
+    private fun postSummaryNotification(title: String, content: String) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
-        return builder.build()
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(content)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(content))
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentIntent(pendingIntent)
+            .setOngoing(false)
+            .setAutoCancel(true)
+            .build()
+
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val uniqueSummaryId = System.currentTimeMillis().toInt()
+        manager.notify(uniqueSummaryId, notification)
     }
 
     private fun createNotificationChannel() {
@@ -215,7 +246,7 @@ class TraceForegroundService : Service() {
 
     companion object {
         const val CHANNEL_ID = "tracer_service_channel"
-        const val NOTIFICATION_ID = 1001
+        const val ONGOING_NOTIFICATION_ID = 1001
         const val EXTRA_TARGET = "extra_target"
         const val EXTRA_TYPE = "extra_type"
         const val ACTION_STOP = "action_stop"

@@ -2,6 +2,7 @@ package com.felixbrucker.tracer.feature.ping
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -111,7 +112,7 @@ fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Bo
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 2.dp)
-                    ) {
+                ) {
                     Text(
                         text = "RTT Min = ${"%.1f".format(minRtt)}ms | Avg = ${"%.1f".format(avgRtt)}ms | Max = ${"%.1f".format(maxRtt)}ms",
                         style = MaterialTheme.typography.bodySmall,
@@ -150,31 +151,35 @@ fun PingItemCard(ping: PingResult) {
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "#${ping.sequence}",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                modifier = Modifier.width(36.dp)
-            )
             Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "#${ping.sequence}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = timeFormatted,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Text(
-                    text = timeFormatted,
+                    text = "IP: ${ping.ipAddress ?: ping.target}  •  TTL: ${ping.ttl}",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace
-                )
-                Text(
-                    text = "IP: ${ping.ipAddress ?: ping.target}  TTL=${ping.ttl}",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    modifier = Modifier.padding(top = 2.dp)
                 )
             }
             if (ping.isSuccess && ping.rttMs != null) {
                 Text(
                     text = "${"%.1f".format(ping.rttMs)} ms",
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = rttColor,
                     fontFamily = FontFamily.Monospace

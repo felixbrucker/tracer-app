@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.felixbrucker.tracer.core.model.HopResult
 
 @Composable
@@ -72,6 +73,9 @@ fun HopItemCard(hop: HopResult) {
         else -> Color(0xFFD84315)
     }
 
+    val displayHostName = hop.hostName
+    val hasReverseHost = !displayHostName.isNullOrBlank() && displayHostName != "*" && displayHostName != hop.ipAddress
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -98,17 +102,25 @@ fun HopItemCard(hop: HopResult) {
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = hop.ipAddress ?: "*",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = if (hop.isFinalDestination) FontWeight.Bold else FontWeight.Normal
-                )
-                if (hop.hostName != null && hop.hostName != "*" && hop.hostName != hop.ipAddress) {
+                if (hasReverseHost && displayHostName != null) {
                     Text(
-                        text = hop.hostName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = displayHostName,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = hop.ipAddress ?: "*",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = FontFamily.Monospace
+                    )
+                } else {
+                    Text(
+                        text = hop.ipAddress ?: "*",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = if (hop.isFinalDestination) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
