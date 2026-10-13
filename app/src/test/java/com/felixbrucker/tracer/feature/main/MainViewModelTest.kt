@@ -2,7 +2,6 @@ package com.felixbrucker.tracer.feature.main
 
 import com.felixbrucker.tracer.core.data.FavoriteRepository
 import com.felixbrucker.tracer.core.data.TraceRepository
-import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -38,13 +37,13 @@ class MainViewModelTest {
         val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
         val traceRepoMock = mockk<TraceRepository>(relaxed = true)
         coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
-        coEvery { favoriteRepoMock.addFavorite("Test", "127.0.0.1", "PING") } returns 1L
+        coEvery { favoriteRepoMock.addFavorite("Test", "127.0.0.1") } returns 1L
         val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock)
 
-        viewModel.addFavorite("Test", "127.0.0.1", "PING")
+        viewModel.addFavorite("Test", "127.0.0.1")
         advanceUntilIdle()
 
-        coVerify { favoriteRepoMock.addFavorite("Test", "127.0.0.1", "PING") }
+        coVerify { favoriteRepoMock.addFavorite("Test", "127.0.0.1") }
     }
 
     @Test

@@ -5,7 +5,7 @@ import androidx.compose.runtime.Immutable
 enum class TraceType {
     PING,
     TRACEROUTE,
-    WINMTR
+    MTR
 }
 
 @Immutable

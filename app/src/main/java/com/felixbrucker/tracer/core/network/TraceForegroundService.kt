@@ -50,7 +50,7 @@ class TraceForegroundService : Service() {
         val initialNotification = buildNotification("Starting $traceType to $target", "Initializing...")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+            startForeground(NOTIFICATION_ID, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         } else {
             startForeground(NOTIFICATION_ID, initialNotification)
         }
@@ -92,7 +92,7 @@ class TraceForegroundService : Service() {
                     }
                     .launchIn(serviceScope)
             }
-            TraceType.WINMTR -> {
+            TraceType.MTR -> {
                 traceJob = traceRepository.runWinMtrStream(target)
                     .onEach { stats ->
                         traceRepository.updateWinMtrStats(stats)
@@ -102,10 +102,10 @@ class TraceForegroundService : Service() {
                         } else {
                             "Tracing path to $target..."
                         }
-                        updateNotification("WinMTR Live $target", status)
+                        updateNotification("MTR Live $target", status)
                     }
                     .catch { e ->
-                        updateNotification("WinMTR $target Error", e.message ?: "Failed")
+                        updateNotification("MTR $target Error", e.message ?: "Failed")
                     }
                     .launchIn(serviceScope)
             }

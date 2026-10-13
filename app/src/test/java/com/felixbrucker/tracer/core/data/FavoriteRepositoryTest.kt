@@ -16,7 +16,7 @@ class FavoriteRepositoryTest {
     @Test
     fun testGetFavoritesSuccess() = runTest {
         val daoMock = mockk<FavoriteTargetDao>(relaxed = true)
-        val expectedList = listOf(FavoriteTargetEntity(id = 1L, title = "Google DNS", host = "8.8.8.8", defaultType = "PING"))
+        val expectedList = listOf(FavoriteTargetEntity(id = 1L, title = "Google DNS", host = "8.8.8.8"))
         coEvery { daoMock.getAllFavorites() } returns flowOf(expectedList)
         val repository = FavoriteRepository(daoMock)
 
@@ -31,7 +31,7 @@ class FavoriteRepositoryTest {
         coEvery { daoMock.insertFavorite(any()) } returns 1L
         val repository = FavoriteRepository(daoMock)
 
-        val id = repository.addFavorite("Cloudflare", "1.1.1.1", "WINMTR")
+        val id = repository.addFavorite("Cloudflare", "1.1.1.1")
 
         assertEquals(1L, id)
         coVerify { daoMock.insertFavorite(match { it.title == "Cloudflare" && it.host == "1.1.1.1" }) }

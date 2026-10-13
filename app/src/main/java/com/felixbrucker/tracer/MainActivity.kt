@@ -26,7 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.felixbrucker.tracer.core.designsystem.TracerTheme
 import com.felixbrucker.tracer.core.model.TraceType
 import com.felixbrucker.tracer.core.network.TraceForegroundService
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TracerAppScreen(
-    viewModel: MainViewModel = hiltViewModel(),
+    viewModel: MainViewModel = viewModel(),
     onStartTrace: (String, TraceType) -> Unit,
     onStopTrace: () -> Unit
 ) {
@@ -87,8 +87,8 @@ fun TracerAppScreen(
                 NavigationBarItem(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    icon = { Icon(Icons.Default.GraphicEq, contentDescription = "WinMTR") },
-                    label = { Text("WinMTR") }
+                    icon = { Icon(Icons.Default.GraphicEq, contentDescription = "MTR") },
+                    label = { Text("MTR") }
                 )
                 NavigationBarItem(
                     selected = selectedTab == 1,
@@ -123,13 +123,14 @@ fun TracerAppScreen(
                     isRunning = isRunning,
                     onStartTrace = {
                         val currentType = when (selectedTab) {
-                            0 -> TraceType.WINMTR
+                            0 -> TraceType.MTR
                             1 -> TraceType.TRACEROUTE
                             else -> TraceType.PING
                         }
                         onStartTrace(targetHost, currentType)
                     },
-                    onStopTrace = onStopTrace
+                    onStopTrace = onStopTrace,
+                    favorites = favorites
                 )
             }
 
@@ -139,18 +140,17 @@ fun TracerAppScreen(
                 2 -> PingScreenContent(results = pingResults)
                 3 -> FavoritesScreenContent(
                     favorites = favorites,
-                    onSelectFavorite = { favorite ->
-                        targetHost = favorite.host
-                        val type = runCatching { TraceType.valueOf(favorite.defaultType) }.getOrDefault(TraceType.WINMTR)
+                    onStartTraceWithType = { host, type ->
+                        targetHost = host
                         selectedTab = when (type) {
-                            TraceType.WINMTR -> 0
+                            TraceType.MTR -> 0
                             TraceType.TRACEROUTE -> 1
                             TraceType.PING -> 2
                         }
-                        onStartTrace(favorite.host, type)
+                        onStartTrace(host, type)
                     },
-                    onAddFavorite = { title, host, type ->
-                        viewModel.addFavorite(title, host, type)
+                    onAddFavorite = { title, host ->
+                        viewModel.addFavorite(title, host)
                     },
                     onRemoveFavorite = { id ->
                         viewModel.removeFavorite(id)

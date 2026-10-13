@@ -48,7 +48,7 @@ class TraceRepository @Inject constructor(
 
     fun runWinMtrStream(target: String): Flow<List<MtrHopStats>> {
         _activeTarget.value = target
-        _activeTraceType.value = TraceType.WINMTR
+        _activeTraceType.value = TraceType.MTR
         _winMtrStats.value = emptyList()
         return networkEngine.executeWinMtrStream(target)
     }

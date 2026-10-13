@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -35,16 +36,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
+import com.felixbrucker.tracer.core.model.TraceType
 
 @Composable
 fun FavoritesScreenContent(
     favorites: List<FavoriteTargetEntity>,
-    onSelectFavorite: (FavoriteTargetEntity) -> Unit,
-    onAddFavorite: (String, String, String) -> Unit,
+    onStartTraceWithType: (String, TraceType) -> Unit,
+    onAddFavorite: (String?, String) -> Unit,
     onRemoveFavorite: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
+    var favoriteForTypeSelection by remember { mutableStateOf<FavoriteTargetEntity?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -74,7 +77,7 @@ fun FavoritesScreenContent(
                 items(favorites, key = { it.id }) { favorite ->
                     FavoriteItemCard(
                         favorite = favorite,
-                        onSelect = { onSelectFavorite(favorite) },
+                        onSelect = { favoriteForTypeSelection = favorite },
                         onDelete = { onRemoveFavorite(favorite.id) }
                     )
                 }
@@ -84,9 +87,20 @@ fun FavoritesScreenContent(
         if (showAddDialog) {
             AddFavoriteDialog(
                 onDismiss = { showAddDialog = false },
-                onAdd = { title, host, type ->
-                    onAddFavorite(title, host, type)
+                onAdd = { title, host ->
+                    onAddFavorite(title, host)
                     showAddDialog = false
+                }
+            )
+        }
+
+        favoriteForTypeSelection?.let { favorite ->
+            TraceTypeSelectionDialog(
+                target = favorite,
+                onDismiss = { favoriteForTypeSelection = null },
+                onTypeSelected = { traceType ->
+                    onStartTraceWithType(favorite.host, traceType)
+                    favoriteForTypeSelection = null
                 }
             )
         }
@@ -113,16 +127,24 @@ fun FavoriteItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = favorite.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${favorite.host} • ${favorite.defaultType}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (!favorite.title.isNullOrBlank()) {
+                    Text(
+                        text = favorite.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = favorite.host,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = favorite.host,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
             IconButton(onClick = onSelect) {
                 Icon(Icons.Default.PlayArrow, contentDescription = "Start Trace")
@@ -137,11 +159,10 @@ fun FavoriteItemCard(
 @Composable
 fun AddFavoriteDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String, String) -> Unit
+    onAdd: (String?, String) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var host by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf("WINMTR") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -151,7 +172,7 @@ fun AddFavoriteDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title (e.g., Google DNS)") },
+                    label = { Text("Name / Title (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -166,11 +187,57 @@ fun AddFavoriteDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { if (title.isNotBlank() && host.isNotBlank()) onAdd(title, host, type) }
+                onClick = { if (host.isNotBlank()) onAdd(title.ifBlank { null }, host) }
             ) {
                 Text("Save")
             }
         },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun TraceTypeSelectionDialog(
+    target: FavoriteTargetEntity,
+    onDismiss: () -> Unit,
+    onTypeSelected: (TraceType) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select Diagnostic Action") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Target: ${target.title ?: target.host}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { onTypeSelected(TraceType.MTR) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    Text("MTR Live Trace")
+                }
+                Button(
+                    onClick = { onTypeSelected(TraceType.TRACEROUTE) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    Text("Traceroute")
+                }
+                Button(
+                    onClick = { onTypeSelected(TraceType.PING) },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) {
+                    Text("Ping")
+                }
+            }
+        },
+        confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel")

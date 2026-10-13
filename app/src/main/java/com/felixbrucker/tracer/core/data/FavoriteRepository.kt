@@ -12,11 +12,10 @@ class FavoriteRepository @Inject constructor(
 ) {
     val favorites: Flow<List<FavoriteTargetEntity>> = favoriteTargetDao.getAllFavorites()
 
-    suspend fun addFavorite(title: String, host: String, defaultType: String): Long {
+    suspend fun addFavorite(title: String?, host: String): Long {
         val entity = FavoriteTargetEntity(
-            title = title,
-            host = host,
-            defaultType = defaultType
+            title = if (title.isNullOrBlank()) null else title,
+            host = host
         )
         return favoriteTargetDao.insertFavorite(entity)
     }

@@ -32,9 +32,9 @@ class MainViewModel @Inject constructor(
     val activeTraceType: StateFlow<TraceType?> = traceRepository.activeTraceType
     val activeTarget: StateFlow<String?> = traceRepository.activeTarget
 
-    fun addFavorite(title: String, host: String, type: String) {
+    fun addFavorite(title: String?, host: String) {
         viewModelScope.launch {
-            favoriteRepository.addFavorite(title, host, type)
+            favoriteRepository.addFavorite(title, host)
         }
     }
 

@@ -7,8 +7,7 @@ import androidx.room.PrimaryKey
 data class FavoriteTargetEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val title: String,
+    val title: String? = null,
     val host: String,
-    val defaultType: String,
     val addedAt: Long = System.currentTimeMillis()
 )

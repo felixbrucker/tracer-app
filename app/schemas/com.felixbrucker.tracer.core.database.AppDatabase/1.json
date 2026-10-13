@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "879edf851723533f48e3940e7b272c1e",
+    "identityHash": "12e75c001ab62e45ddb1b97c707b2df4",
     "entities": [
       {
         "tableName": "favorite_targets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `host` TEXT NOT NULL, `defaultType` TEXT NOT NULL, `addedAt` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT, `host` TEXT NOT NULL, `addedAt` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -17,18 +17,11 @@
           {
             "fieldPath": "title",
             "columnName": "title",
-            "affinity": "TEXT",
-            "notNull": true
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "host",
             "columnName": "host",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "defaultType",
-            "columnName": "defaultType",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -49,7 +42,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '879edf851723533f48e3940e7b272c1e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '12e75c001ab62e45ddb1b97c707b2df4')"
     ]
   }
 }
