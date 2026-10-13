@@ -13,11 +13,14 @@ import kotlinx.coroutines.isActive
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.InetAddress
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NetworkEngine @Inject constructor() {
+
+    private val reverseDnsCache = ConcurrentHashMap<String, String>()
 
     fun executePingStream(target: String, count: Int = Int.MAX_VALUE, intervalMs: Long = 1000L): Flow<PingResult> = flow {
         var sequence = 1
@@ -130,7 +133,7 @@ class NetworkEngine @Inject constructor() {
                 if (currentLine.contains("bytes from") || currentLine.contains("from")) {
                     rttMs = parseRttFromPingOutput(currentLine)
                     if (ip == null) {
-                        ip = parseIpFromPingOutput(currentLine)
+                        ip = parseIpFromPingOutput(currentLine)?.second
                     }
                 }
             }
@@ -169,6 +172,7 @@ class NetworkEngine @Inject constructor() {
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var ipAddress: String? = null
+            var parsedHost: String? = null
             var rttMs: Double? = null
             var isDestination = false
             var receivedResponse = false
@@ -177,7 +181,11 @@ class NetworkEngine @Inject constructor() {
                 val currentLine = line ?: continue
                 if (currentLine.contains("From") || currentLine.contains("from") || currentLine.contains("bytes from")) {
                     receivedResponse = true
-                    ipAddress = parseIpFromPingOutput(currentLine)
+                    val hostAndIp = parseIpFromPingOutput(currentLine)
+                    if (hostAndIp != null) {
+                        parsedHost = hostAndIp.first
+                        ipAddress = hostAndIp.second
+                    }
                     rttMs = parseRttFromPingOutput(currentLine)
                 }
                 if (currentLine.contains("bytes from") && !currentLine.contains("Time to live exceeded")) {
@@ -201,10 +209,10 @@ class NetworkEngine @Inject constructor() {
                     isTimeout = true
                 )
             } else {
-                val reverseName = reverseLookup(ipAddress)
+                val resolvedHostName = resolveReverseName(ipAddress, parsedHost)
                 HopResult(
                     hopNumber = ttl,
-                    hostName = reverseName ?: ipAddress,
+                    hostName = resolvedHostName,
                     ipAddress = ipAddress,
                     rttMs = rttMs,
                     isFinalDestination = isDestination,
@@ -222,13 +230,24 @@ class NetworkEngine @Inject constructor() {
         }
     }
 
-    private fun reverseLookup(ip: String): String? {
+    private fun resolveReverseName(ip: String, parsedHost: String?): String {
+        if (!parsedHost.isNullOrBlank() && parsedHost != ip) {
+            reverseDnsCache[ip] = parsedHost
+            return parsedHost
+        }
+        reverseDnsCache[ip]?.let { return it }
+
         return try {
             val inet = InetAddress.getByName(ip)
             val hostName = inet.canonicalHostName
-            if (hostName != ip) hostName else null
+            if (!hostName.isNullOrBlank() && hostName != ip) {
+                reverseDnsCache[ip] = hostName
+                hostName
+            } else {
+                ip
+            }
         } catch (e: Exception) {
-            null
+            ip
         }
     }
 
@@ -254,10 +273,23 @@ class NetworkEngine @Inject constructor() {
         }
     }
 
-    private fun parseIpFromPingOutput(line: String): String? {
+    private fun parseIpFromPingOutput(line: String): Pair<String, String>? {
         return try {
-            val regex = """\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b""".toRegex()
-            regex.find(line)?.value
+            val regexWithHost = """from\s+([^\s()]+)(?:\s+\(([0-9.]+)\))?""".toRegex(RegexOption.IGNORE_CASE)
+            val match = regexWithHost.find(line)
+            if (match != null) {
+                val firstGroup = match.groupValues[1].trimEnd(':')
+                val secondGroup = match.groupValues.getOrNull(2)
+                if (!secondGroup.isNullOrBlank()) {
+                    Pair(firstGroup, secondGroup)
+                } else {
+                    Pair(firstGroup, firstGroup)
+                }
+            } else {
+                val ipRegex = """\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b""".toRegex()
+                val ipMatch = ipRegex.find(line)?.value
+                if (ipMatch != null) Pair(ipMatch, ipMatch) else null
+            }
         } catch (e: Exception) {
             null
         }

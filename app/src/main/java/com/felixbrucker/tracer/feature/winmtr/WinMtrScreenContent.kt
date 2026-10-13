@@ -82,7 +82,7 @@ fun WinMtrHeaderRow() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("#", Modifier.width(22.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Host / IP", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("IP / Host", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Loss%", Modifier.width(42.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("S/R", Modifier.width(46.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Avg", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -110,8 +110,8 @@ fun WinMtrHopCard(stat: MtrHopStats) {
         else -> Color(0xFFD84315)
     }
 
-    val displayHost = if (stat.hostName != "*" && stat.hostName != stat.ipAddress) {
-        "${stat.hostName} (${stat.ipAddress})"
+    val displayHost = if (!stat.hostName.isNullOrBlank() && stat.hostName != "*" && stat.hostName != stat.ipAddress) {
+        "${stat.ipAddress} (${stat.hostName})"
     } else {
         stat.ipAddress
     }

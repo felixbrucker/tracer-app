@@ -106,25 +106,18 @@ fun HopItemCard(hop: HopResult) {
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = hop.ipAddress ?: "*",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = if (hop.isFinalDestination) FontWeight.Bold else FontWeight.Normal
+                )
                 if (hasReverseHost) {
                     Text(
                         text = displayHostName,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Text(
-                        text = hop.ipAddress ?: "*",
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = FontFamily.Monospace
-                    )
-                } else {
-                    Text(
-                        text = hop.ipAddress ?: "*",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = if (hop.isFinalDestination) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package com.felixbrucker.tracer.feature.ping
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -152,7 +153,7 @@ fun PingItemCard(ping: PingResult) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
@@ -178,17 +179,20 @@ fun PingItemCard(ping: PingResult) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 Text(
                     text = "IP: ${ping.ipAddress ?: ping.target}",
                     fontSize = 11.sp,
+                    lineHeight = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "TTL: ${ping.ttl}",
                     fontSize = 11.sp,
+                    lineHeight = 12.sp,
                     fontFamily = FontFamily.Monospace,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
