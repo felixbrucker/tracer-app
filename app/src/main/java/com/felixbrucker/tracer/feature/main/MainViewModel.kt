@@ -1,0 +1,46 @@
+package com.felixbrucker.tracer.feature.main
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.felixbrucker.tracer.core.data.FavoriteRepository
+import com.felixbrucker.tracer.core.data.TraceRepository
+import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
+import com.felixbrucker.tracer.core.model.HopResult
+import com.felixbrucker.tracer.core.model.MtrHopStats
+import com.felixbrucker.tracer.core.model.PingResult
+import com.felixbrucker.tracer.core.model.TraceType
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val traceRepository: TraceRepository,
+    private val favoriteRepository: FavoriteRepository
+) : ViewModel() {
+
+    val favorites: StateFlow<List<FavoriteTargetEntity>> = favoriteRepository.favorites
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val pingResults: StateFlow<List<PingResult>> = traceRepository.pingResults
+    val tracerouteHops: StateFlow<List<HopResult>> = traceRepository.tracerouteHops
+    val winMtrStats: StateFlow<List<MtrHopStats>> = traceRepository.winMtrStats
+
+    val activeTraceType: StateFlow<TraceType?> = traceRepository.activeTraceType
+    val activeTarget: StateFlow<String?> = traceRepository.activeTarget
+
+    fun addFavorite(title: String, host: String, type: String) {
+        viewModelScope.launch {
+            favoriteRepository.addFavorite(title, host, type)
+        }
+    }
+
+    fun removeFavorite(id: Long) {
+        viewModelScope.launch {
+            favoriteRepository.removeFavorite(id)
+        }
+    }
+}
