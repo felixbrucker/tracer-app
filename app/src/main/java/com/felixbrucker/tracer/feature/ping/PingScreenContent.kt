@@ -111,7 +111,7 @@ fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Bo
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 2.dp)
-                ) {
+                    ) {
                     Text(
                         text = "RTT Min = ${"%.1f".format(minRtt)}ms | Avg = ${"%.1f".format(avgRtt)}ms | Max = ${"%.1f".format(maxRtt)}ms",
                         style = MaterialTheme.typography.bodySmall,
@@ -164,13 +164,12 @@ fun PingItemCard(ping: PingResult) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontFamily = FontFamily.Monospace
                 )
-                if (ping.ipAddress != null && ping.ipAddress != ping.target) {
-                    Text(
-                        text = ping.ipAddress,
-                        fontSize = 10.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = "IP: ${ping.ipAddress ?: ping.target}  TTL=${ping.ttl}",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = FontFamily.Monospace
+                )
             }
             if (ping.isSuccess && ping.rttMs != null) {
                 Text(

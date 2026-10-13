@@ -201,9 +201,10 @@ class NetworkEngine @Inject constructor() {
                     isTimeout = true
                 )
             } else {
+                val reverseName = reverseLookup(ipAddress)
                 HopResult(
                     hopNumber = ttl,
-                    hostName = ipAddress,
+                    hostName = reverseName ?: ipAddress,
                     ipAddress = ipAddress,
                     rttMs = rttMs,
                     isFinalDestination = isDestination,
@@ -218,6 +219,16 @@ class NetworkEngine @Inject constructor() {
                 rttMs = null,
                 isTimeout = true
             )
+        }
+    }
+
+    private fun reverseLookup(ip: String): String? {
+        return try {
+            val inet = InetAddress.getByName(ip)
+            val hostName = inet.canonicalHostName
+            if (hostName != ip) hostName else null
+        } catch (e: Exception) {
+            null
         }
     }
 

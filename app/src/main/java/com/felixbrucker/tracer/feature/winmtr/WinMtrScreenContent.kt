@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,10 +81,10 @@ fun WinMtrHeaderRow() {
                 .padding(horizontal = 6.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("#", Modifier.width(24.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("#", Modifier.width(22.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Host / IP", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Loss%", Modifier.width(42.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("S/R", Modifier.width(48.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("S/R", Modifier.width(46.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Avg", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Best", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
             Text("Wrst", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
@@ -102,6 +103,19 @@ fun WinMtrHopCard(stat: MtrHopStats) {
         label = "cardColorAnimation"
     )
 
+    fun getRttColor(rtt: Double): Color = when {
+        rtt == 0.0 -> Color.Unspecified
+        rtt < 50.0 -> Color(0xFF2E7D32)
+        rtt < 150.0 -> Color(0xFFF57F17)
+        else -> Color(0xFFD84315)
+    }
+
+    val displayHost = if (stat.hostName != "*" && stat.hostName != stat.ipAddress) {
+        "${stat.hostName} (${stat.ipAddress})"
+    } else {
+        stat.ipAddress
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -116,13 +130,13 @@ fun WinMtrHopCard(stat: MtrHopStats) {
         ) {
             Text(
                 text = "${stat.hopNumber}",
-                modifier = Modifier.width(24.dp),
+                modifier = Modifier.width(22.dp),
                 fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = stat.ipAddress,
+                text = displayHost,
                 modifier = Modifier.weight(1f),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
@@ -139,7 +153,7 @@ fun WinMtrHopCard(stat: MtrHopStats) {
             )
             Text(
                 text = "${stat.sent}/${stat.received}",
-                modifier = Modifier.width(48.dp),
+                modifier = Modifier.width(46.dp),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace
             )
@@ -147,19 +161,23 @@ fun WinMtrHopCard(stat: MtrHopStats) {
                 text = "${"%.0f".format(stat.avgRttMs)}",
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.SemiBold,
+                color = getRttColor(stat.avgRttMs)
             )
             Text(
                 text = if (stat.bestRttMs == Double.MAX_VALUE) "-" else "${"%.0f".format(stat.bestRttMs)}",
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                color = getRttColor(if (stat.bestRttMs == Double.MAX_VALUE) 0.0 else stat.bestRttMs)
             )
             Text(
                 text = "${"%.0f".format(stat.worstRttMs)}",
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                color = getRttColor(stat.worstRttMs)
             )
         }
     }

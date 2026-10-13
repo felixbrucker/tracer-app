@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,7 +86,7 @@ fun TracerAppScreen(
     onStopTrace: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
-    var targetHost by remember { mutableStateOf("8.8.8.8") }
+    var targetHost by remember { mutableStateOf("") }
 
     val pingResults by viewModel.pingResults.collectAsState()
     val tracerouteHops by viewModel.tracerouteHops.collectAsState()
@@ -94,6 +95,12 @@ fun TracerAppScreen(
     val activeTraceType by viewModel.activeTraceType.collectAsState()
 
     val isRunning = activeTraceType != null
+
+    LaunchedEffect(favorites) {
+        if (targetHost.isEmpty() && favorites.isNotEmpty()) {
+            targetHost = favorites.first().host
+        }
+    }
 
     Scaffold(
         topBar = {

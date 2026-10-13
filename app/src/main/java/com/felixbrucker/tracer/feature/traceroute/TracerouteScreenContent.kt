@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,6 +64,14 @@ fun TracerouteScreenContent(
 
 @Composable
 fun HopItemCard(hop: HopResult) {
+    val rtt = hop.rttMs
+    val rttColor = when {
+        hop.isTimeout || rtt == null -> MaterialTheme.colorScheme.error
+        rtt < 50.0 -> Color(0xFF2E7D32)
+        rtt < 150.0 -> Color(0xFFF57F17)
+        else -> Color(0xFFD84315)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -95,7 +104,7 @@ fun HopItemCard(hop: HopResult) {
                     fontFamily = FontFamily.Monospace,
                     fontWeight = if (hop.isFinalDestination) FontWeight.Bold else FontWeight.Normal
                 )
-                if (hop.hostName != null && hop.hostName != hop.ipAddress) {
+                if (hop.hostName != null && hop.hostName != "*" && hop.hostName != hop.ipAddress) {
                     Text(
                         text = hop.hostName,
                         style = MaterialTheme.typography.bodySmall,
@@ -104,11 +113,11 @@ fun HopItemCard(hop: HopResult) {
                 }
             }
             Text(
-                text = if (hop.isTimeout) "*" else "${"%.1f".format(hop.rttMs ?: 0.0)} ms",
+                text = if (hop.isTimeout) "*" else "${"%.1f".format(rtt ?: 0.0)} ms",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                color = if (hop.isTimeout) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                color = rttColor
             )
         }
     }
