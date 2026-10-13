@@ -38,6 +38,17 @@ class FavoriteRepositoryTest {
     }
 
     @Test
+    fun testUpdateFavoriteSuccess() = runTest {
+        val daoMock = mockk<FavoriteTargetDao>(relaxed = true)
+        coEvery { daoMock.updateFavorite(any()) } returns Unit
+        val repository = FavoriteRepository(daoMock)
+
+        repository.updateFavorite(1L, "Updated", "1.1.1.1")
+
+        coVerify { daoMock.updateFavorite(match { it.id == 1L && it.title == "Updated" && it.host == "1.1.1.1" }) }
+    }
+
+    @Test
     fun testRemoveFavoriteSuccess() = runTest {
         val daoMock = mockk<FavoriteTargetDao>(relaxed = true)
         coEvery { daoMock.deleteFavoriteById(1L) } returns Unit

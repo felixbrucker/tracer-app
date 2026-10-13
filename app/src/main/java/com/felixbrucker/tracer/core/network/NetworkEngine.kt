@@ -17,6 +17,7 @@ import java.net.InetAddress
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class NetworkEngine @Inject constructor() {
@@ -40,7 +41,7 @@ class NetworkEngine @Inject constructor() {
             val elapsed = System.currentTimeMillis() - startTime
             val sleepTime = settings.pingIntervalMs - elapsed
             if (sleepTime > 0) {
-                delay(sleepTime)
+                delay(sleepTime.milliseconds)
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -125,7 +126,7 @@ class NetworkEngine @Inject constructor() {
             val elapsed = System.currentTimeMillis() - cycleStartTime
             val sleepTime = settings.pingIntervalMs - elapsed
             if (sleepTime > 0) {
-                delay(sleepTime)
+                delay(sleepTime.milliseconds)
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -162,7 +163,7 @@ class NetworkEngine @Inject constructor() {
                 ipAddress = ip,
                 ttl = 64,
                 rttMs = if (exitCode == 0) rttMs else null,
-                isSuccess = exitCode == 0 && rttMs != null
+                isSuccess = exitCode == 0
             )
         } catch (e: Exception) {
             PingResult(

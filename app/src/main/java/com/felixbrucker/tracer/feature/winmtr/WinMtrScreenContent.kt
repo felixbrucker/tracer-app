@@ -1,7 +1,6 @@
 package com.felixbrucker.tracer.feature.winmtr
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -112,7 +111,7 @@ fun WinMtrHopCard(stat: MtrHopStats) {
         else -> Color(0xFFD32F2F)
     }
 
-    val displayHost = if (!stat.hostName.isNullOrBlank() && stat.hostName != "*" && stat.hostName != stat.ipAddress) {
+    val displayHost = if (stat.hostName.isNotBlank() && stat.hostName != "*" && stat.hostName != stat.ipAddress) {
         "${stat.ipAddress} (${stat.hostName})"
     } else {
         stat.ipAddress
@@ -160,7 +159,7 @@ fun WinMtrHopCard(stat: MtrHopStats) {
                 fontFamily = FontFamily.Monospace
             )
             Text(
-                text = "${"%.0f".format(stat.avgRttMs)}",
+                text = "%.0f".format(stat.avgRttMs),
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
@@ -168,14 +167,14 @@ fun WinMtrHopCard(stat: MtrHopStats) {
                 color = getRttColor(stat.avgRttMs)
             )
             Text(
-                text = if (stat.bestRttMs == Double.MAX_VALUE) "-" else "${"%.0f".format(stat.bestRttMs)}",
+                text = if (stat.bestRttMs == Double.MAX_VALUE) "-" else "%.0f".format(stat.bestRttMs),
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
                 color = getRttColor(if (stat.bestRttMs == Double.MAX_VALUE) 0.0 else stat.bestRttMs)
             )
             Text(
-                text = "${"%.0f".format(stat.worstRttMs)}",
+                text = "%.0f".format(stat.worstRttMs),
                 modifier = Modifier.width(36.dp),
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,

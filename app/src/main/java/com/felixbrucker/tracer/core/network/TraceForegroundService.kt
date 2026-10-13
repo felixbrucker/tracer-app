@@ -14,28 +14,21 @@ import androidx.core.app.NotificationCompat
 import com.felixbrucker.tracer.MainActivity
 import com.felixbrucker.tracer.MainApplication
 import com.felixbrucker.tracer.R
-import com.felixbrucker.tracer.core.data.TraceRepository
 import com.felixbrucker.tracer.core.model.TraceType
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class TraceForegroundService : Service() {
 
     @Inject
-    lateinit var traceRepository: TraceRepository
+    lateinit var traceOrchestrationManager: TraceOrchestrationManager
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
-    private var traceJob: Job? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -65,131 +58,28 @@ class TraceForegroundService : Service() {
     }
 
     private fun startTracing(target: String, traceType: TraceType) {
-        traceJob?.cancel()
-
-        traceJob = serviceScope.launch {
-            when (traceType) {
-                TraceType.PING -> {
-                    traceRepository.runPingStream(target)
-                        .onEach { pingResult ->
-                            traceRepository.updatePingResult(pingResult)
-                            val pingList = traceRepository.pingResults.value
-                            val sent = pingList.size
-                            val recv = pingList.count { it.isSuccess }
-                            val lost = sent - recv
-                            val lossPct = if (sent == 0) 0.0 else (lost.toDouble() / sent.toDouble()) * 100.0
-                            val statusText = if (pingResult.isSuccess) {
-                                "Seq ${pingResult.sequence}: ${pingResult.rttMs?.let { "%.1f".format(it) }} ms | Recv: $recv/$sent (Loss: ${"%.0f".format(lossPct)}%)"
-                            } else {
-                                "Seq ${pingResult.sequence}: Timed out | Recv: $recv/$sent (Loss: ${"%.0f".format(lossPct)}%)"
-                            }
-                            updateOngoingNotification("Ping $target", statusText)
-                        }
-                        .onCompletion {
-                            if (MainApplication.isAppInBackground) {
-                                val pingList = traceRepository.pingResults.value
-                                val sent = pingList.size
-                                val recv = pingList.count { it.isSuccess }
-                                val lost = sent - recv
-                                val lossPct = if (sent == 0) 0.0 else (lost.toDouble() / sent.toDouble()) * 100.0
-                                val rtts = pingList.mapNotNull { it.rttMs }
-                                val avgRtt = if (rtts.isNotEmpty()) rtts.average() else 0.0
-                                val minRtt = rtts.minOrNull() ?: 0.0
-                                val maxRtt = rtts.maxOrNull() ?: 0.0
-
-                                val finishedSummary = "Sent: $sent, Recv: $recv, Lost: $lost (${"%.0f".format(lossPct)}% loss) | RTT Min/Avg/Max: ${"%.1f".format(minRtt)}/${"%.1f".format(avgRtt)}/${"%.1f".format(maxRtt)} ms"
-                                postSummaryNotification("Ping Summary for $target", finishedSummary)
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .catch { e ->
-                            if (MainApplication.isAppInBackground) {
-                                postSummaryNotification("Ping Summary for $target", e.message ?: "Failed")
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .launchIn(this)
-                }
-                TraceType.TRACEROUTE -> {
-                    traceRepository.runTracerouteStream(target)
-                        .onEach { hop ->
-                            traceRepository.updateTracerouteHop(hop)
-                            val status = "Hop ${hop.hopNumber}: ${hop.ipAddress} (${if (hop.isTimeout) "Timeout" else "${hop.rttMs?.let { "%.1f".format(it) }} ms"})"
-                            updateOngoingNotification("Traceroute $target", status)
-                        }
-                        .onCompletion {
-                            if (MainApplication.isAppInBackground) {
-                                val hops = traceRepository.tracerouteHops.value
-                                val reached = hops.lastOrNull()?.isFinalDestination == true
-                                val rtts = hops.mapNotNull { it.rttMs }
-                                val avgRtt = if (rtts.isNotEmpty()) rtts.average() else 0.0
-                                val destHop = hops.lastOrNull()
-
-                                val finishedSummary = if (reached && destHop != null) {
-                                    "Destination reached in ${hops.size} hops | Final RTT: ${"%.1f".format(destHop.rttMs ?: 0.0)} ms | Path Avg RTT: ${"%.1f".format(avgRtt)} ms"
-                                } else {
-                                    "Stopped after ${hops.size} hops | Path Avg RTT: ${"%.1f".format(avgRtt)} ms"
-                                }
-                                postSummaryNotification("Traceroute Summary for $target", finishedSummary)
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .catch { e ->
-                            if (MainApplication.isAppInBackground) {
-                                postSummaryNotification("Traceroute Summary for $target", e.message ?: "Failed")
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .launchIn(this)
-                }
-                TraceType.MTR -> {
-                    traceRepository.runWinMtrStream(target)
-                        .onEach { stats ->
-                            traceRepository.updateWinMtrStats(stats)
-                            val destHop = stats.lastOrNull { it.sent > 0 }
-                            val totalProbes = stats.maxOfOrNull { it.sent } ?: 0
-                            val status = if (destHop != null) {
-                                "Probes: $totalProbes | Hops: ${stats.size} | Loss: ${"%.0f".format(destHop.lossPercentage)}% | Last RTT: ${"%.1f".format(destHop.lastRttMs)} ms"
-                            } else {
-                                "Tracing path to $target (Probes: $totalProbes)..."
-                            }
-                            updateOngoingNotification("MTR Live $target", status)
-                        }
-                        .onCompletion {
-                            if (MainApplication.isAppInBackground) {
-                                val stats = traceRepository.winMtrStats.value
-                                val destHop = stats.lastOrNull { it.sent > 0 }
-                                val totalProbes = stats.maxOfOrNull { it.sent } ?: 0
-                                val summaryText = if (destHop != null) {
-                                    "Probes: $totalProbes | Hops: ${stats.size} | Final Loss: ${"%.0f".format(destHop.lossPercentage)}% | Avg RTT: ${"%.1f".format(destHop.avgRttMs)} ms | Best/Worst: ${"%.0f".format(destHop.bestRttMs)}/${"%.0f".format(destHop.worstRttMs)} ms"
-                                } else {
-                                    "Session ended after $totalProbes probes (${stats.size} hops)"
-                                }
-                                postSummaryNotification("MTR Summary for $target", summaryText)
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .catch { e ->
-                            if (MainApplication.isAppInBackground) {
-                                postSummaryNotification("MTR Summary for $target", e.message ?: "Failed")
-                            }
-                            traceRepository.clearActiveTrace()
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                        }
-                        .launchIn(this)
-                }
+        traceOrchestrationManager.startTracing(
+            scope = serviceScope,
+            target = target,
+            traceType = traceType,
+            isAppInBackground = { MainApplication.isAppInBackground },
+            onUpdateNotification = { title, content -> updateOngoingNotification(title, content) },
+            onPostSummaryNotification = { title, content -> postSummaryNotification(title, content) },
+            onFinish = {
+                stopForeground(STOP_FOREGROUND_REMOVE)
             }
-        }
+        )
+    }
+
+    private fun stopTracingService() {
+        traceOrchestrationManager.stopTracing()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     private fun updateOngoingNotification(title: String, content: String) {
         val notification = buildOngoingNotification(title, content)
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(ONGOING_NOTIFICATION_ID, notification)
     }
 
@@ -238,28 +128,19 @@ class TraceForegroundService : Service() {
             .setAutoCancel(true)
             .build()
 
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val uniqueSummaryId = System.currentTimeMillis().toInt()
         manager.notify(uniqueSummaryId, notification)
     }
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Trace Service Channel",
-                NotificationManager.IMPORTANCE_LOW
-            )
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
-        }
-    }
-
-    private fun stopTracingService() {
-        traceJob?.cancel()
-        traceRepository.clearActiveTrace()
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "Trace Service Channel",
+            NotificationManager.IMPORTANCE_LOW
+        )
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
     }
 
     override fun onDestroy() {
@@ -279,11 +160,7 @@ class TraceForegroundService : Service() {
                 putExtra(EXTRA_TARGET, target)
                 putExtra(EXTRA_TYPE, traceType.name)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         }
 
         fun stop(context: Context) {

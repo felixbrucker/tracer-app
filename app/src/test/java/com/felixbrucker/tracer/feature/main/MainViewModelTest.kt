@@ -4,6 +4,7 @@ import com.felixbrucker.tracer.core.data.FavoriteRepository
 import com.felixbrucker.tracer.core.data.TraceRepository
 import com.felixbrucker.tracer.core.datastore.AppSettingsRepository
 import com.felixbrucker.tracer.core.datastore.TracerSettings
+import com.felixbrucker.tracer.core.database.entity.FavoriteTargetEntity
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -16,6 +17,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 
@@ -51,6 +54,21 @@ class MainViewModelTest {
     }
 
     @Test
+    fun testUpdateFavoriteInvokesRepository() = runTest {
+        val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
+        val traceRepoMock = mockk<TraceRepository>(relaxed = true)
+        val settingsRepoMock = mockk<AppSettingsRepository>(relaxed = true)
+        coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
+        coEvery { settingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
+        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock, settingsRepoMock)
+
+        viewModel.updateFavorite(1L, "Updated", "1.1.1.1")
+        advanceUntilIdle()
+
+        coVerify { favoriteRepoMock.updateFavorite(1L, "Updated", "1.1.1.1") }
+    }
+
+    @Test
     fun testRemoveFavoriteInvokesRepository() = runTest {
         val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
         val traceRepoMock = mockk<TraceRepository>(relaxed = true)
@@ -64,5 +82,42 @@ class MainViewModelTest {
         advanceUntilIdle()
 
         coVerify { favoriteRepoMock.removeFavorite(5L) }
+    }
+
+    @Test
+    fun testUpdateSettingsInvokesRepository() = runTest {
+        val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
+        val traceRepoMock = mockk<TraceRepository>(relaxed = true)
+        val settingsRepoMock = mockk<AppSettingsRepository>(relaxed = true)
+        coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
+        coEvery { settingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
+        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock, settingsRepoMock)
+
+        viewModel.updatePingIntervalMs(2000L)
+        viewModel.updatePingTimeoutSec(5)
+        viewModel.updateMaxHops(25)
+        advanceUntilIdle()
+
+        coVerify { settingsRepoMock.updatePingIntervalMs(2000L) }
+        coVerify { settingsRepoMock.updatePingTimeoutSec(5) }
+        coVerify { settingsRepoMock.updateMaxHops(25) }
+    }
+
+    @Test
+    fun testViewModelStateFlows() = runTest {
+        val favoriteRepoMock = mockk<FavoriteRepository>(relaxed = true)
+        val traceRepoMock = mockk<TraceRepository>(relaxed = true)
+        val settingsRepoMock = mockk<AppSettingsRepository>(relaxed = true)
+        coEvery { favoriteRepoMock.favorites } returns flowOf(emptyList())
+        coEvery { settingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
+
+        val viewModel = MainViewModel(traceRepoMock, favoriteRepoMock, settingsRepoMock)
+        assertEquals(emptyList<FavoriteTargetEntity>(), viewModel.favorites.value)
+        assertEquals(TracerSettings(), viewModel.tracerSettings.value)
+        assertNotNull(viewModel.pingResults)
+        assertNotNull(viewModel.tracerouteHops)
+        assertNotNull(viewModel.winMtrStats)
+        assertNotNull(viewModel.activeTraceType)
+        assertNotNull(viewModel.activeTarget)
     }
 }

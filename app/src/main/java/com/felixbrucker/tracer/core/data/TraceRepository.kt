@@ -1,7 +1,6 @@
 package com.felixbrucker.tracer.core.data
 
 import com.felixbrucker.tracer.core.datastore.AppSettingsRepository
-import com.felixbrucker.tracer.core.datastore.TracerSettings
 import com.felixbrucker.tracer.core.model.HopResult
 import com.felixbrucker.tracer.core.model.MtrHopStats
 import com.felixbrucker.tracer.core.model.PingResult

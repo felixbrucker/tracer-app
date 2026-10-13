@@ -1,6 +1,5 @@
 package com.felixbrucker.tracer.feature.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -85,7 +84,7 @@ fun TargetInputField(
                 DropdownMenuItem(
                     text = {
                         Column {
-                            if (!favorite.title.isNull_or_blank_safe()) {
+                            if (!favorite.title.nullOrBlankSafe()) {
                                 Text(
                                     text = favorite.title!!,
                                     style = MaterialTheme.typography.bodyLarge,
@@ -115,6 +114,6 @@ fun TargetInputField(
     }
 }
 
-private fun String?.isNull_or_blank_safe(): Boolean {
+private fun String?.nullOrBlankSafe(): Boolean {
     return this == null || this.trim().isEmpty()
 }

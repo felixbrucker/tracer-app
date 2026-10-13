@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val traceRepository: TraceRepository,
+    traceRepository: TraceRepository,
     private val favoriteRepository: FavoriteRepository,
     private val appSettingsRepository: AppSettingsRepository
 ) : ViewModel() {

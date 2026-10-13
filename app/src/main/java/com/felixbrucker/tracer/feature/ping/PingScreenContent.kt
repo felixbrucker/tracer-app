@@ -35,6 +35,7 @@ import com.felixbrucker.tracer.core.model.PingResult
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun PingScreenContent(
@@ -229,6 +230,6 @@ fun PingItemCard(ping: PingResult) {
 
 @Composable
 private fun rememberFormattedTime(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    val sdf = SimpleDateFormat("HH:mm:ss", LocalLocale.current.platformLocale)
     return sdf.format(Date(timestamp))
 }
