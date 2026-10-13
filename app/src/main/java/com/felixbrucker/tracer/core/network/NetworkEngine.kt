@@ -71,21 +71,21 @@ class NetworkEngine @Inject constructor() {
                 val currentStat = statsMap[ttl] ?: MtrHopStats(hopNumber = ttl)
 
                 val newSent = currentStat.sent + 1
-                val isSuccess = !probe.isTimeout && probe.rttMs != null
+                val isSuccess = !probe.isTimeout
                 val newReceived = if (isSuccess) currentStat.received + 1 else currentStat.received
 
                 val rtt = probe.rttMs ?: 0.0
                 val newLast = if (isSuccess) rtt else currentStat.lastRttMs
-                val newBest = if (isSuccess) minOf(currentStat.bestRttMs, rtt) else currentStat.bestRttMs
+                val newBest = if (isSuccess && rtt > 0.0) minOf(currentStat.bestRttMs, rtt) else currentStat.bestRttMs
                 val newWorst = if (isSuccess) maxOf(currentStat.worstRttMs, rtt) else currentStat.worstRttMs
                 val newTotal = if (isSuccess) currentStat.totalRttMs + rtt else currentStat.totalRttMs
 
-                val newIp = probe.ipAddress ?: currentStat.ipAddress
-                val newHost = probe.hostName ?: currentStat.hostName
+                val newIp = if (!probe.isTimeout && probe.ipAddress != "*") probe.ipAddress else currentStat.ipAddress
+                val newHost = if (!probe.isTimeout && probe.hostName != "*") probe.hostName else currentStat.hostName
 
                 val updatedStat = currentStat.copy(
-                    ipAddress = newIp,
-                    hostName = newHost,
+                    ipAddress = newIp ?: "*",
+                    hostName = newHost ?: "*",
                     sent = newSent,
                     received = newReceived,
                     lastRttMs = newLast,
@@ -118,6 +118,7 @@ class NetworkEngine @Inject constructor() {
 
     private fun runSinglePing(target: String, resolvedIp: String?, sequence: Int): PingResult {
         return try {
+            val startMs = System.currentTimeMillis()
             val process = Runtime.getRuntime().exec("ping -c 1 -w 2 $target")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
@@ -126,23 +127,28 @@ class NetworkEngine @Inject constructor() {
 
             while (reader.readLine().also { line = it } != null) {
                 val currentLine = line ?: continue
-                if (currentLine.contains("bytes from")) {
+                if (currentLine.contains("bytes from") || currentLine.contains("from")) {
                     rttMs = parseRttFromPingOutput(currentLine)
                     if (ip == null) {
                         ip = parseIpFromPingOutput(currentLine)
                     }
                 }
             }
-            process.waitFor()
+            val exitCode = process.waitFor()
             reader.close()
+
+            val endMs = System.currentTimeMillis()
+            if (rttMs == null && exitCode == 0) {
+                rttMs = (endMs - startMs).toDouble()
+            }
 
             PingResult(
                 sequence = sequence,
                 target = target,
                 ipAddress = ip,
                 ttl = 64,
-                rttMs = rttMs,
-                isSuccess = rttMs != null
+                rttMs = if (exitCode == 0) rttMs else null,
+                isSuccess = exitCode == 0 && rttMs != null
             )
         } catch (e: Exception) {
             PingResult(
@@ -158,16 +164,19 @@ class NetworkEngine @Inject constructor() {
 
     private fun runSingleProbeWithTtl(target: String, ttl: Int): HopResult {
         return try {
+            val startMs = System.currentTimeMillis()
             val process = Runtime.getRuntime().exec("ping -c 1 -t $ttl -w 2 $target")
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var ipAddress: String? = null
             var rttMs: Double? = null
             var isDestination = false
+            var receivedResponse = false
 
             while (reader.readLine().also { line = it } != null) {
                 val currentLine = line ?: continue
-                if (currentLine.contains("From") || currentLine.contains("from")) {
+                if (currentLine.contains("From") || currentLine.contains("from") || currentLine.contains("bytes from")) {
+                    receivedResponse = true
                     ipAddress = parseIpFromPingOutput(currentLine)
                     rttMs = parseRttFromPingOutput(currentLine)
                 }
@@ -178,7 +187,12 @@ class NetworkEngine @Inject constructor() {
             process.waitFor()
             reader.close()
 
-            if (ipAddress == null) {
+            val endMs = System.currentTimeMillis()
+            if (receivedResponse && rttMs == null) {
+                rttMs = (endMs - startMs).toDouble()
+            }
+
+            if (!receivedResponse || ipAddress == null) {
                 HopResult(
                     hopNumber = ttl,
                     hostName = "*",

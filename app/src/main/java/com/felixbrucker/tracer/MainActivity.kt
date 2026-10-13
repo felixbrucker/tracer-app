@@ -1,9 +1,13 @@
 package com.felixbrucker.tracer
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.felixbrucker.tracer.core.designsystem.TracerTheme
 import com.felixbrucker.tracer.core.model.TraceType
@@ -40,9 +45,15 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestNotificationPermissionIfNeeded()
+
         setContent {
             TracerTheme {
                 TracerAppScreen(
@@ -53,6 +64,14 @@ class MainActivity : ComponentActivity() {
                         TraceForegroundService.stop(this)
                     }
                 )
+            }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
@@ -137,7 +156,11 @@ fun TracerAppScreen(
             when (selectedTab) {
                 0 -> WinMtrScreenContent(statsList = winMtrStats)
                 1 -> TracerouteScreenContent(hops = tracerouteHops)
-                2 -> PingScreenContent(results = pingResults)
+                2 -> PingScreenContent(
+                    results = pingResults,
+                    isRunning = isRunning,
+                    targetHost = targetHost
+                )
                 3 -> FavoritesScreenContent(
                     favorites = favorites,
                     onStartTraceWithType = { host, type ->

@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
@@ -75,8 +76,14 @@ class TraceForegroundService : Service() {
                         }
                         updateNotification("Ping $target", status)
                     }
+                    .onCompletion {
+                        updateNotification("Ping Finished", "Completed ping to $target")
+                        traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_DETACH)
+                    }
                     .catch { e ->
                         updateNotification("Ping $target Error", e.message ?: "Failed")
+                        traceRepository.clearActiveTrace()
                     }
                     .launchIn(serviceScope)
             }
@@ -87,8 +94,14 @@ class TraceForegroundService : Service() {
                         val status = "Hop ${hop.hopNumber}: ${hop.ipAddress} (${hop.rttMs ?: "*"} ms)"
                         updateNotification("Traceroute $target", status)
                     }
+                    .onCompletion {
+                        updateNotification("Traceroute Finished", "Reached target $target")
+                        traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_DETACH)
+                    }
                     .catch { e ->
                         updateNotification("Traceroute $target Error", e.message ?: "Failed")
+                        traceRepository.clearActiveTrace()
                     }
                     .launchIn(serviceScope)
             }
@@ -104,8 +117,13 @@ class TraceForegroundService : Service() {
                         }
                         updateNotification("MTR Live $target", status)
                     }
+                    .onCompletion {
+                        traceRepository.clearActiveTrace()
+                        stopForeground(STOP_FOREGROUND_DETACH)
+                    }
                     .catch { e ->
                         updateNotification("MTR $target Error", e.message ?: "Failed")
+                        traceRepository.clearActiveTrace()
                     }
                     .launchIn(serviceScope)
             }

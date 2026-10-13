@@ -3,7 +3,6 @@ package com.felixbrucker.tracer.feature.winmtr
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,12 +16,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.felixbrucker.tracer.core.model.MtrHopStats
 
 @Composable
@@ -32,15 +35,27 @@ fun WinMtrScreenContent(
 ) {
     val listState = rememberLazyListState()
 
+    val isAtBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems <= 1) true
+            else {
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem != null && lastVisibleItem.index >= totalItems - 2
+            }
+        }
+    }
+
     LaunchedEffect(statsList.size) {
-        if (statsList.isNotEmpty()) {
-            listState.animateScrollToItem(statsList.size - 1)
+        if (statsList.isNotEmpty() && isAtBottom) {
+            listState.animateScrollToItem(statsList.size)
         }
     }
 
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize().padding(horizontal = 8.dp)
+        modifier = modifier.fillMaxSize().padding(horizontal = 4.dp)
     ) {
         item {
             WinMtrHeaderRow()
@@ -62,16 +77,16 @@ fun WinMtrHeaderRow() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
+                .padding(horizontal = 6.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("#", Modifier.width(28.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Host", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Loss%", Modifier.width(50.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("S/R", Modifier.width(55.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Avg", Modifier.width(45.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Best", Modifier.width(45.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-            Text("Wrst", Modifier.width(45.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("#", Modifier.width(24.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Host / IP", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Loss%", Modifier.width(42.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("S/R", Modifier.width(48.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Avg", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Best", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+            Text("Wrst", Modifier.width(36.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -80,8 +95,8 @@ fun WinMtrHeaderRow() {
 fun WinMtrHopCard(stat: MtrHopStats) {
     val cardColor by animateColorAsState(
         targetValue = when {
-            stat.lossPercentage > 20.0 -> MaterialTheme.colorScheme.errorContainer
-            stat.lossPercentage > 0.0 -> MaterialTheme.colorScheme.warningContainer()
+            stat.lossPercentage > 20.0 -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)
+            stat.lossPercentage > 0.0 -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
             else -> MaterialTheme.colorScheme.surfaceContainerHigh
         },
         label = "cardColorAnimation"
@@ -96,58 +111,56 @@ fun WinMtrHopCard(stat: MtrHopStats) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(horizontal = 6.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "${stat.hopNumber}",
-                modifier = Modifier.width(28.dp),
-                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.width(24.dp),
+                fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = stat.ipAddress,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${"%.0f".format(stat.lossPercentage)}%",
-                modifier = Modifier.width(50.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(42.dp),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 color = if (stat.lossPercentage > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "${stat.sent}/${stat.received}",
-                modifier = Modifier.width(55.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(48.dp),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace
             )
             Text(
                 text = "${"%.0f".format(stat.avgRttMs)}",
-                modifier = Modifier.width(45.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(36.dp),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace
             )
             Text(
                 text = if (stat.bestRttMs == Double.MAX_VALUE) "-" else "${"%.0f".format(stat.bestRttMs)}",
-                modifier = Modifier.width(45.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(36.dp),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace
             )
             Text(
                 text = "${"%.0f".format(stat.worstRttMs)}",
-                modifier = Modifier.width(45.dp),
-                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(36.dp),
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace
             )
         }
     }
 }
-
-@Composable
-private fun androidx.compose.material3.ColorScheme.warningContainer() =
-    this.tertiaryContainer

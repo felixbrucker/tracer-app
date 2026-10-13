@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -30,8 +33,20 @@ fun TracerouteScreenContent(
 ) {
     val listState = rememberLazyListState()
 
+    val isAtBottom by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            if (totalItems == 0) true
+            else {
+                val lastVisibleItem = layoutInfo.visibleItemsInfo.lastOrNull()
+                lastVisibleItem != null && lastVisibleItem.index >= totalItems - 2
+            }
+        }
+    }
+
     LaunchedEffect(hops.size) {
-        if (hops.isNotEmpty()) {
+        if (hops.isNotEmpty() && isAtBottom) {
             listState.animateScrollToItem(hops.size - 1)
         }
     }
