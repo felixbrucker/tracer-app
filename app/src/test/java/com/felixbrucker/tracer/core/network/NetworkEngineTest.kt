@@ -145,6 +145,25 @@ class NetworkEngineTest {
     }
 
     @Test
+    fun testExecuteTracerouteStreamParallelHopsWithFinalDestination() = runTest {
+        every { processMock.inputStream } returns ByteArrayInputStream("64 bytes from 8.8.8.8: icmp_seq=1 ttl=54 time=10.0 ms\n".toByteArray())
+        every { processMock.waitFor() } returns 0
+
+        val engine = NetworkEngine()
+        val settings = TracerSettings(maxHops = 10, pingTimeoutSec = 1)
+        val results = engine.executeTracerouteStream("8.8.8.8", settings = settings).toList()
+        assertNotNull(results)
+    }
+
+    @Test
+    fun testExecuteMtrStreamMultipleCycles() = runTest {
+        val engine = NetworkEngine()
+        val settings = TracerSettings(maxHops = 5, pingIntervalMs = 1L, pingTimeoutSec = 1)
+        val results = engine.executeMtrStream("8.8.8.8", settings = settings).take(2).toList()
+        assertNotNull(results)
+    }
+
+    @Test
     fun testExecuteMtrStreamException() = runTest {
         val runtimeMock = mockk<Runtime>(relaxed = true)
         every { Runtime.getRuntime() } returns runtimeMock

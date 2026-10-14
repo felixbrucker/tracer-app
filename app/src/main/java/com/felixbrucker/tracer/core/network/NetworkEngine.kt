@@ -4,7 +4,11 @@ import com.felixbrucker.tracer.core.datastore.TracerSettings
 import com.felixbrucker.tracer.core.model.HopResult
 import com.felixbrucker.tracer.core.model.MtrHopStats
 import com.felixbrucker.tracer.core.model.PingResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -51,16 +55,25 @@ class NetworkEngine @Inject constructor() {
         settings: TracerSettings = TracerSettings()
     ): Flow<HopResult> = flow {
         val resolvedIp = resolveHost(target)
-        var reachedDestination = false
+        coroutineScope {
+            val probeJobs = (1..settings.maxHops).map { ttl ->
+                async {
+                    runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
+                }
+            }
 
-        for (ttl in 1..settings.maxHops) {
-            if (!currentCoroutineContext().isActive || reachedDestination) break
+            var reachedDestination = false
+            for (deferred in probeJobs) {
+                if (!currentCoroutineContext().isActive || reachedDestination) {
+                    probeJobs.forEach { it.cancel() }
+                    break
+                }
+                val hop = deferred.await()
+                emit(hop)
 
-            val hop = runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
-            emit(hop)
-
-            if (hop.isFinalDestination || (resolvedIp != null && hop.ipAddress == resolvedIp)) {
-                reachedDestination = true
+                if (hop.isFinalDestination || (resolvedIp != null && hop.ipAddress == resolvedIp && hop.ipAddress != "*")) {
+                    reachedDestination = true
+                }
             }
         }
     }.flowOn(Dispatchers.IO)
@@ -74,15 +87,23 @@ class NetworkEngine @Inject constructor() {
             statsMap[i] = MtrHopStats(hopNumber = i)
         }
 
-        var activeMaxHops = 15
+        var activeMaxHops = minOf(15, settings.maxHops)
 
         while (currentCoroutineContext().isActive) {
             val cycleStartTime = System.currentTimeMillis()
 
-            for (ttl in 1..activeMaxHops) {
-                if (!currentCoroutineContext().isActive) break
+            val probes = coroutineScope {
+                (1..activeMaxHops).map { ttl ->
+                    async {
+                        ttl to runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
+                    }
+                }.awaitAll()
+            }
 
-                val probe = runSingleProbeWithTtl(target, ttl, settings.pingTimeoutSec)
+            var foundFinal = false
+            var finalTtl = activeMaxHops
+
+            for ((ttl, probe) in probes) {
                 val currentStat = statsMap[ttl] ?: MtrHopStats(hopNumber = ttl)
 
                 val newSent = currentStat.sent + 1
@@ -112,9 +133,16 @@ class NetworkEngine @Inject constructor() {
                 statsMap[ttl] = updatedStat
 
                 if (probe.isFinalDestination) {
-                    activeMaxHops = ttl
+                    foundFinal = true
+                    finalTtl = ttl
                     break
                 }
+            }
+
+            if (foundFinal) {
+                activeMaxHops = finalTtl
+            } else if (activeMaxHops < settings.maxHops) {
+                activeMaxHops = minOf(activeMaxHops + 5, settings.maxHops)
             }
 
             val currentStatsList = statsMap.values
@@ -166,6 +194,7 @@ class NetworkEngine @Inject constructor() {
                 isSuccess = exitCode == 0
             )
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             PingResult(
                 sequence = sequence,
                 target = target,
@@ -232,6 +261,7 @@ class NetworkEngine @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             HopResult(
                 hopNumber = ttl,
                 hostName = "*",
@@ -259,6 +289,7 @@ class NetworkEngine @Inject constructor() {
                 ip
             }
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             ip
         }
     }
@@ -267,6 +298,7 @@ class NetworkEngine @Inject constructor() {
         return try {
             InetAddress.getByName(host).hostAddress
         } catch (e: Exception) {
+            if (e is CancellationException) throw e
             null
         }
     }
