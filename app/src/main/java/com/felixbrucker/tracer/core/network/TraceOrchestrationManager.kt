@@ -84,15 +84,15 @@ class TraceOrchestrationManager @Inject constructor(
                         .launchIn(this)
                 }
                 TraceType.MTR -> {
-                    traceRepository.runWinMtrStream(target)
+                    traceRepository.runMtrStream(target)
                         .onEach { stats ->
-                            traceRepository.updateWinMtrStats(stats)
+                            traceRepository.updateMtrStats(stats)
                             val status = TraceSummaryCalculator.calculateMtrStatus(stats)
                             onUpdateNotification("MTR Live $target", status)
                         }
                         .onCompletion {
                             if (isAppInBackground()) {
-                                val stats = traceRepository.winMtrStats.value
+                                val stats = traceRepository.mtrStats.value
                                 val summaryText = TraceSummaryCalculator.calculateMtrFinalSummary(stats)
                                 onPostSummaryNotification("MTR Summary for $target", summaryText)
                             }

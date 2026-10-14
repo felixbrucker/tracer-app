@@ -1,4 +1,4 @@
-package com.felixbrucker.tracer.feature.winmtr
+package com.felixbrucker.tracer.feature.mtr
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.Row
@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.felixbrucker.tracer.core.model.MtrHopStats
 
 @Composable
-fun WinMtrScreenContent(
+fun MtrScreenContent(
     statsList: List<MtrHopStats>,
     modifier: Modifier = Modifier
 ) {
@@ -58,16 +58,16 @@ fun WinMtrScreenContent(
         modifier = modifier.fillMaxSize().padding(horizontal = 4.dp)
     ) {
         item {
-            WinMtrHeaderRow()
+            MtrHeaderRow()
         }
         items(statsList, key = { it.hopNumber }) { stat ->
-            WinMtrHopCard(stat = stat)
+            MtrHopCard(stat = stat)
         }
     }
 }
 
 @Composable
-fun WinMtrHeaderRow() {
+fun MtrHeaderRow() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -92,7 +92,7 @@ fun WinMtrHeaderRow() {
 }
 
 @Composable
-fun WinMtrHopCard(stat: MtrHopStats) {
+fun MtrHopCard(stat: MtrHopStats) {
     val cardColor by animateColorAsState(
         targetValue = when {
             stat.lossPercentage > 20.0 -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f)

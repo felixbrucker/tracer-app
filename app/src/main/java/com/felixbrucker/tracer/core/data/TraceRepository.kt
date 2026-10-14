@@ -26,8 +26,8 @@ class TraceRepository @Inject constructor(
     private val _tracerouteHops = MutableStateFlow<List<HopResult>>(emptyList())
     val tracerouteHops: StateFlow<List<HopResult>> = _tracerouteHops.asStateFlow()
 
-    private val _winMtrStats = MutableStateFlow<List<MtrHopStats>>(emptyList())
-    val winMtrStats: StateFlow<List<MtrHopStats>> = _winMtrStats.asStateFlow()
+    private val _mtrStats = MutableStateFlow<List<MtrHopStats>>(emptyList())
+    val mtrStats: StateFlow<List<MtrHopStats>> = _mtrStats.asStateFlow()
 
     private val _activeTraceType = MutableStateFlow<TraceType?>(null)
     val activeTraceType: StateFlow<TraceType?> = _activeTraceType.asStateFlow()
@@ -51,12 +51,12 @@ class TraceRepository @Inject constructor(
         return networkEngine.executeTracerouteStream(target, settings = settings)
     }
 
-    suspend fun runWinMtrStream(target: String): Flow<List<MtrHopStats>> {
+    suspend fun runMtrStream(target: String): Flow<List<MtrHopStats>> {
         val settings = appSettingsRepository.tracerSettings.first()
         _activeTarget.value = target
         _activeTraceType.value = TraceType.MTR
-        _winMtrStats.value = emptyList()
-        return networkEngine.executeWinMtrStream(target, settings = settings)
+        _mtrStats.value = emptyList()
+        return networkEngine.executeMtrStream(target, settings = settings)
     }
 
     fun updatePingResult(result: PingResult) {
@@ -71,8 +71,8 @@ class TraceRepository @Inject constructor(
         _tracerouteHops.value = currentList
     }
 
-    fun updateWinMtrStats(stats: List<MtrHopStats>) {
-        _winMtrStats.value = stats
+    fun updateMtrStats(stats: List<MtrHopStats>) {
+        _mtrStats.value = stats
     }
 
     fun clearActiveTrace() {

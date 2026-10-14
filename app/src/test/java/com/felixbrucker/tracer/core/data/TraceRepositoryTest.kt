@@ -49,15 +49,15 @@ class TraceRepositoryTest {
     }
 
     @Test
-    fun testRunWinMtrStreamSuccess() = runTest {
+    fun testRunMtrStreamSuccess() = runTest {
         val networkEngineMock = mockk<NetworkEngine>()
         val appSettingsRepoMock = mockk<AppSettingsRepository>()
         val stats = listOf(MtrHopStats(hopNumber = 1, ipAddress = "1.1.1.1", hostName = "cloudflare", sent = 10, received = 10, lastRttMs = 2.0, bestRttMs = 1.0, worstRttMs = 3.0, totalRttMs = 20.0))
         coEvery { appSettingsRepoMock.tracerSettings } returns flowOf(TracerSettings())
-        every { networkEngineMock.executeWinMtrStream("8.8.8.8", any()) } returns flowOf(stats)
+        every { networkEngineMock.executeMtrStream("8.8.8.8", any()) } returns flowOf(stats)
 
         val repository = TraceRepository(networkEngineMock, appSettingsRepoMock)
-        repository.runWinMtrStream("8.8.8.8")
+        repository.runMtrStream("8.8.8.8")
 
         assertEquals(TraceType.MTR, repository.activeTraceType.value)
         assertEquals("8.8.8.8", repository.activeTarget.value)
@@ -78,8 +78,8 @@ class TraceRepositoryTest {
         assertEquals(1, repository.tracerouteHops.value.size)
 
         val stats = listOf(MtrHopStats(hopNumber = 1, ipAddress = "host", hostName = "host", sent = 5, received = 5, lastRttMs = 1.0, bestRttMs = 1.0, worstRttMs = 1.0, totalRttMs = 5.0))
-        repository.updateWinMtrStats(stats)
-        assertEquals(1, repository.winMtrStats.value.size)
+        repository.updateMtrStats(stats)
+        assertEquals(1, repository.mtrStats.value.size)
 
         repository.clearActiveTrace()
         assertNull(repository.activeTraceType.value)

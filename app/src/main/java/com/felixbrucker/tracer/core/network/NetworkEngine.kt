@@ -65,7 +65,7 @@ class NetworkEngine @Inject constructor() {
         }
     }.flowOn(Dispatchers.IO)
 
-    fun executeWinMtrStream(
+    fun executeMtrStream(
         target: String,
         settings: TracerSettings = TracerSettings()
     ): Flow<List<MtrHopStats>> = flow {

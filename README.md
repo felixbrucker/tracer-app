@@ -76,8 +76,7 @@ com.felixbrucker.tracer/
 │   ├── ping/                             # Ping Screen & Diagnostic UI
 │   ├── settings/                         # Settings Screen & Preferences UI
 │   ├── traceroute/                       # Traceroute Screen & Hop Visualization
-│   ├── winmtr/                           # WinMTR Diagnostic Screen
-│   └── mtr/                              # MTR Diagnostic Screen
+│   ├── mtr/                              # MTR Diagnostic Screen
 ├── di/                                   # Application-wide Hilt DI Modules
 └── extensions/                           # Extension functions
 ```

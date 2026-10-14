@@ -95,7 +95,7 @@ kover {
                     "com.felixbrucker.tracer.feature.ping.*",
                     "com.felixbrucker.tracer.feature.settings.*",
                     "com.felixbrucker.tracer.feature.traceroute.*",
-                    "com.felixbrucker.tracer.feature.winmtr.*",
+                    "com.felixbrucker.tracer.feature.mtr.*",
                     "com.felixbrucker.tracer.feature.components.*",
                     "*ScreenContent*",
                     "*InputField*",

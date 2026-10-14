@@ -116,7 +116,7 @@ class MainViewModelTest {
         assertEquals(TracerSettings(), viewModel.tracerSettings.value)
         assertNotNull(viewModel.pingResults)
         assertNotNull(viewModel.tracerouteHops)
-        assertNotNull(viewModel.winMtrStats)
+        assertNotNull(viewModel.mtrStats)
         assertNotNull(viewModel.activeTraceType)
         assertNotNull(viewModel.activeTarget)
     }

@@ -137,22 +137,22 @@ class NetworkEngineTest {
     }
 
     @Test
-    fun testExecuteWinMtrStreamWithMockedProcess() = runTest {
+    fun testExecuteMtrStreamWithMockedProcess() = runTest {
         val engine = NetworkEngine()
         val settings = TracerSettings(maxHops = 2, pingTimeoutSec = 1)
-        val results = engine.executeWinMtrStream("8.8.8.8", settings = settings).take(1).toList()
+        val results = engine.executeMtrStream("8.8.8.8", settings = settings).take(1).toList()
         assertNotNull(results)
     }
 
     @Test
-    fun testExecuteWinMtrStreamException() = runTest {
+    fun testExecuteMtrStreamException() = runTest {
         val runtimeMock = mockk<Runtime>(relaxed = true)
         every { Runtime.getRuntime() } returns runtimeMock
         every { runtimeMock.exec(any<String>()) } throws RuntimeException("Exec failed")
 
         val engine = NetworkEngine()
         val settings = TracerSettings(maxHops = 2, pingTimeoutSec = 1)
-        val results = engine.executeWinMtrStream("8.8.8.8", settings = settings).take(1).toList()
+        val results = engine.executeMtrStream("8.8.8.8", settings = settings).take(1).toList()
         assertNotNull(results)
     }
 }

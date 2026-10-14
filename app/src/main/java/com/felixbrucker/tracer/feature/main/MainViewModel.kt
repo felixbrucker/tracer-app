@@ -33,7 +33,7 @@ class MainViewModel @Inject constructor(
 
     val pingResults: StateFlow<List<PingResult>> = traceRepository.pingResults
     val tracerouteHops: StateFlow<List<HopResult>> = traceRepository.tracerouteHops
-    val winMtrStats: StateFlow<List<MtrHopStats>> = traceRepository.winMtrStats
+    val mtrStats: StateFlow<List<MtrHopStats>> = traceRepository.mtrStats
 
     val activeTraceType: StateFlow<TraceType?> = traceRepository.activeTraceType
     val activeTarget: StateFlow<String?> = traceRepository.activeTarget

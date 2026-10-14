@@ -44,7 +44,7 @@ import com.felixbrucker.tracer.feature.main.MainViewModel
 import com.felixbrucker.tracer.feature.ping.PingScreenContent
 import com.felixbrucker.tracer.feature.settings.SettingsScreenContent
 import com.felixbrucker.tracer.feature.traceroute.TracerouteScreenContent
-import com.felixbrucker.tracer.feature.winmtr.WinMtrScreenContent
+import com.felixbrucker.tracer.feature.mtr.MtrScreenContent
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -93,7 +93,7 @@ fun TracerAppScreen(
 
     val pingResults by viewModel.pingResults.collectAsState()
     val tracerouteHops by viewModel.tracerouteHops.collectAsState()
-    val winMtrStats by viewModel.winMtrStats.collectAsState()
+    val mtrStats by viewModel.mtrStats.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val tracerSettings by viewModel.tracerSettings.collectAsState()
     val activeTraceType by viewModel.activeTraceType.collectAsState()
@@ -171,7 +171,7 @@ fun TracerAppScreen(
             }
 
             when (selectedTab) {
-                0 -> WinMtrScreenContent(statsList = winMtrStats)
+                0 -> MtrScreenContent(statsList = mtrStats)
                 1 -> TracerouteScreenContent(hops = tracerouteHops)
                 2 -> PingScreenContent(
                     results = pingResults,

@@ -66,7 +66,7 @@ class TraceOrchestrationManagerTest {
     fun testStartTracingMtr() = testScope.runTest {
         val traceRepositoryMock = mockk<TraceRepository>(relaxed = true)
         val stats = listOf(MtrHopStats(hopNumber = 1, ipAddress = "8.8.8.8", hostName = "google", sent = 10, received = 10, lastRttMs = 5.0, bestRttMs = 4.0, worstRttMs = 6.0, totalRttMs = 50.0))
-        coEvery { traceRepositoryMock.runWinMtrStream("8.8.8.8") } returns flowOf(stats)
+        coEvery { traceRepositoryMock.runMtrStream("8.8.8.8") } returns flowOf(stats)
 
         val manager = TraceOrchestrationManager(traceRepositoryMock)
         manager.startTracing(
