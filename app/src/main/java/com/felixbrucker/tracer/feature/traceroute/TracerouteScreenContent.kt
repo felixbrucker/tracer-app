@@ -131,7 +131,7 @@ fun HopItemCard(hop: HopResult) {
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = if (hop.isTimeout) "*" else "${"%.1f".format(rtt ?: 0.0)} ms",
+                    text = if (hop.isTimeout) "*" else "${"%.0f".format(rtt ?: 0.0)} ms",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
