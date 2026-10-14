@@ -90,7 +90,7 @@ kover {
                     "com.felixbrucker.tracer.MainActivity*",
                     "com.felixbrucker.tracer.MainApplication*",
                     "com.felixbrucker.tracer.ComposableSingletons*",
-                    "com.felixbrucker.tracer.core.network.TraceForegroundService",
+                    "com.felixbrucker.tracer.core.network.TraceForegroundService*",
                     "com.felixbrucker.tracer.feature.favorites.*",
                     "com.felixbrucker.tracer.feature.ping.*",
                     "com.felixbrucker.tracer.feature.settings.*",
