@@ -120,7 +120,7 @@ fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Bo
                         .padding(top = 2.dp)
                 ) {
                     Text(
-                        text = "RTT Min = ${"%.1f".format(minRtt)}ms | Avg = ${"%.1f".format(avgRtt)}ms | Max = ${"%.1f".format(maxRtt)}ms",
+                        text = "RTT Min = ${"%.0f".format(minRtt)}ms | Avg = ${"%.0f".format(avgRtt)}ms | Max = ${"%.0f".format(maxRtt)}ms",
                         style = MaterialTheme.typography.bodySmall,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.SemiBold
@@ -209,7 +209,7 @@ fun PingItemCard(ping: PingResult) {
             ) {
                 if (ping.isSuccess && ping.rttMs != null) {
                     Text(
-                        text = "${"%.1f".format(ping.rttMs)} ms",
+                        text = "${"%.0f".format(ping.rttMs)} ms",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = rttColor,
