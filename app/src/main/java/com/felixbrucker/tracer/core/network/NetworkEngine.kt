@@ -319,8 +319,7 @@ class NetworkEngine @Inject constructor() {
 
     private fun parseIpFromPingOutput(line: String): Pair<String, String>? {
         return try {
-            val regexWithHost = """from\s+([^\s()]+)(?:\s+\(([0-9.]+)\))?""".toRegex(RegexOption.IGNORE_CASE)
-            val match = regexWithHost.find(line)
+            val match = REGEX_WITH_HOST.find(line)
             if (match != null) {
                 val firstGroup = match.groupValues[1].trimEnd(':')
                 val secondGroup = match.groupValues.getOrNull(2)
@@ -330,12 +329,17 @@ class NetworkEngine @Inject constructor() {
                     Pair(firstGroup, firstGroup)
                 }
             } else {
-                val ipRegex = """\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b""".toRegex()
-                val ipMatch = ipRegex.find(line)?.value
+                val ipMatch = IP_REGEX.find(line)?.value
                 if (ipMatch != null) Pair(ipMatch, ipMatch) else null
             }
         } catch (e: Exception) {
             null
         }
+    }
+
+    companion object {
+        // Pre-compile regex patterns to avoid repeated allocation during stream parsing
+        private val REGEX_WITH_HOST = """from\s+([^\s()]+)(?:\s+\(([0-9.]+)\))?""".toRegex(RegexOption.IGNORE_CASE)
+        private val IP_REGEX = """\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b""".toRegex()
     }
 }
