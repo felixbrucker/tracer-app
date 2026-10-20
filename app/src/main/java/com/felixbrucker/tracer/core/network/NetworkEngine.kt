@@ -19,12 +19,13 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.InetAddress
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
-class NetworkEngine @Inject constructor() {
+open class NetworkEngine @Inject constructor() {
 
     private val reverseDnsCache = ConcurrentHashMap<String, String>()
 
@@ -159,10 +160,17 @@ class NetworkEngine @Inject constructor() {
         }
     }.flowOn(Dispatchers.IO)
 
+    internal open fun createProcess(vararg command: String): Process {
+        return ProcessBuilder(*command)
+            .redirectErrorStream(true)
+            .start()
+    }
+
     private fun runSinglePing(target: String, resolvedIp: String?, sequence: Int, timeoutSec: Int): PingResult {
+        var process: Process? = null
         return try {
             val startMs = System.currentTimeMillis()
-            val process = Runtime.getRuntime().exec("ping -c 1 -w $timeoutSec $target")
+            process = createProcess("ping", "-c", "1", "-w", "$timeoutSec", target)
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var rttMs: Double? = null
@@ -177,7 +185,11 @@ class NetworkEngine @Inject constructor() {
                     }
                 }
             }
-            val exitCode = process.waitFor()
+            val exited = process.waitFor((timeoutSec + 2).toLong(), TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroyForcibly()
+            }
+            val exitCode = if (exited) process.exitValue() else -1
             reader.close()
 
             val endMs = System.currentTimeMillis()
@@ -203,13 +215,18 @@ class NetworkEngine @Inject constructor() {
                 rttMs = null,
                 isSuccess = false
             )
+        } finally {
+            try {
+                process?.destroyForcibly()
+            } catch (_: Exception) {}
         }
     }
 
     private fun runSingleProbeWithTtl(target: String, ttl: Int, timeoutSec: Int): HopResult {
+        var process: Process? = null
         return try {
             val startMs = System.currentTimeMillis()
-            val process = Runtime.getRuntime().exec("ping -c 1 -t $ttl -w $timeoutSec $target")
+            process = createProcess("ping", "-c", "1", "-t", "$ttl", "-w", "$timeoutSec", target)
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var ipAddress: String? = null
@@ -233,7 +250,10 @@ class NetworkEngine @Inject constructor() {
                     isDestination = true
                 }
             }
-            process.waitFor()
+            val exited = process.waitFor((timeoutSec + 2).toLong(), TimeUnit.SECONDS)
+            if (!exited) {
+                process.destroyForcibly()
+            }
             reader.close()
 
             val endMs = System.currentTimeMillis()
@@ -269,6 +289,10 @@ class NetworkEngine @Inject constructor() {
                 rttMs = null,
                 isTimeout = true
             )
+        } finally {
+            try {
+                process?.destroyForcibly()
+            } catch (_: Exception) {}
         }
     }
 
