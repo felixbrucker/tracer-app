@@ -73,4 +73,10 @@ class MainViewModel @Inject constructor(
             appSettingsRepository.updateMaxHops(maxHops)
         }
     }
+
+    fun updateLastUsedHost(host: String) {
+        viewModelScope.launch {
+            appSettingsRepository.updateLastUsedHost(host)
+        }
+    }
 }

@@ -96,11 +96,13 @@ class MainViewModelTest {
         viewModel.updatePingIntervalMs(2000L)
         viewModel.updatePingTimeoutSec(5)
         viewModel.updateMaxHops(25)
+        viewModel.updateLastUsedHost("8.8.8.8")
         advanceUntilIdle()
 
         coVerify { settingsRepoMock.updatePingIntervalMs(2000L) }
         coVerify { settingsRepoMock.updatePingTimeoutSec(5) }
         coVerify { settingsRepoMock.updateMaxHops(25) }
+        coVerify { settingsRepoMock.updateLastUsedHost("8.8.8.8") }
     }
 
     @Test

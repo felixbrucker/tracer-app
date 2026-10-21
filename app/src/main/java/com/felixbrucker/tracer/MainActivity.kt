@@ -100,9 +100,13 @@ fun TracerAppScreen(
 
     val isRunning = activeTraceType != null
 
-    LaunchedEffect(favorites) {
-        if (targetHost.isEmpty() && favorites.isNotEmpty()) {
-            targetHost = favorites.first().host
+    LaunchedEffect(tracerSettings.lastUsedHost, favorites) {
+        if (targetHost.isEmpty()) {
+            if (tracerSettings.lastUsedHost.isNotBlank()) {
+                targetHost = tracerSettings.lastUsedHost
+            } else if (favorites.isNotEmpty()) {
+                targetHost = favorites.first().host
+            }
         }
     }
 
@@ -163,6 +167,9 @@ fun TracerAppScreen(
                             1 -> TraceType.TRACEROUTE
                             else -> TraceType.PING
                         }
+                        if (targetHost.isNotBlank()) {
+                            viewModel.updateLastUsedHost(targetHost)
+                        }
                         onStartTrace(targetHost, currentType)
                     },
                     onStopTrace = onStopTrace,
@@ -186,6 +193,9 @@ fun TracerAppScreen(
                             TraceType.MTR -> 0
                             TraceType.TRACEROUTE -> 1
                             TraceType.PING -> 2
+                        }
+                        if (host.isNotBlank()) {
+                            viewModel.updateLastUsedHost(host)
                         }
                         onStartTrace(host, type)
                     },
