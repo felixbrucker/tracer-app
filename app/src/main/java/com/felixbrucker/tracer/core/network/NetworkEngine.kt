@@ -25,7 +25,13 @@ import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
-open class NetworkEngine @Inject constructor() {
+class NetworkEngine @Inject constructor() {
+
+    var processExecutor: (Array<out String>) -> Process = { command ->
+        ProcessBuilder(*command)
+            .redirectErrorStream(true)
+            .start()
+    }
 
     private val reverseDnsCache = ConcurrentHashMap<String, String>()
 
@@ -160,17 +166,11 @@ open class NetworkEngine @Inject constructor() {
         }
     }.flowOn(Dispatchers.IO)
 
-    internal open fun createProcess(vararg command: String): Process {
-        return ProcessBuilder(*command)
-            .redirectErrorStream(true)
-            .start()
-    }
-
     private fun runSinglePing(target: String, resolvedIp: String?, sequence: Int, timeoutSec: Int): PingResult {
         var process: Process? = null
         return try {
             val startMs = System.currentTimeMillis()
-            process = createProcess("ping", "-c", "1", "-w", "$timeoutSec", target)
+            process = processExecutor(arrayOf("ping", "-c", "1", "-w", "$timeoutSec", target))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var rttMs: Double? = null
@@ -226,7 +226,7 @@ open class NetworkEngine @Inject constructor() {
         var process: Process? = null
         return try {
             val startMs = System.currentTimeMillis()
-            process = createProcess("ping", "-c", "1", "-t", "$ttl", "-w", "$timeoutSec", target)
+            process = processExecutor(arrayOf("ping", "-c", "1", "-t", "$ttl", "-w", "$timeoutSec", target))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
             var line: String?
             var ipAddress: String? = null
