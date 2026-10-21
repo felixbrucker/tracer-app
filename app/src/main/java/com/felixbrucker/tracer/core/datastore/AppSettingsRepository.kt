@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.stringPreferencesKey
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +19,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 data class TracerSettings(
     val pingIntervalMs: Long = 1000L,
     val pingTimeoutSec: Int = 2,
-    val maxHops: Int = 30
+    val maxHops: Int = 30,
+    val lastUsedHost: String = ""
 )
 
 @Singleton
@@ -30,6 +32,7 @@ class AppSettingsRepository @Inject constructor(
         val PING_INTERVAL_MS = longPreferencesKey("ping_interval_ms")
         val PING_TIMEOUT_SEC = intPreferencesKey("ping_timeout_sec")
         val MAX_HOPS = intPreferencesKey("max_hops")
+        val LAST_USED_HOST = stringPreferencesKey("last_used_host")
     }
 
     val tracerSettings: Flow<TracerSettings> = context.dataStore.data
@@ -37,7 +40,8 @@ class AppSettingsRepository @Inject constructor(
             TracerSettings(
                 pingIntervalMs = preferences[PreferencesKeys.PING_INTERVAL_MS] ?: 1000L,
                 pingTimeoutSec = preferences[PreferencesKeys.PING_TIMEOUT_SEC] ?: 2,
-                maxHops = preferences[PreferencesKeys.MAX_HOPS] ?: 30
+                maxHops = preferences[PreferencesKeys.MAX_HOPS] ?: 30,
+                lastUsedHost = preferences[PreferencesKeys.LAST_USED_HOST] ?: ""
             )
         }
 
@@ -56,6 +60,12 @@ class AppSettingsRepository @Inject constructor(
     suspend fun updateMaxHops(maxHops: Int) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.MAX_HOPS] = maxHops
+        }
+    }
+
+    suspend fun updateLastUsedHost(host: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_USED_HOST] = host
         }
     }
 }

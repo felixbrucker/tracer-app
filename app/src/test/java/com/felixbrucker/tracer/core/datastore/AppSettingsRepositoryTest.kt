@@ -18,15 +18,17 @@ class AppSettingsRepositoryTest {
 
     @Test
     fun testTracerSettingsDefaults() {
-        val settings = TracerSettings(pingIntervalMs = 2000L, pingTimeoutSec = 5, maxHops = 20)
+        val settings = TracerSettings(pingIntervalMs = 2000L, pingTimeoutSec = 5, maxHops = 20, lastUsedHost = "1.1.1.1")
         assertEquals(2000L, settings.pingIntervalMs)
         assertEquals(5, settings.pingTimeoutSec)
         assertEquals(20, settings.maxHops)
+        assertEquals("1.1.1.1", settings.lastUsedHost)
 
         val defaultSettings = TracerSettings()
         assertEquals(1000L, defaultSettings.pingIntervalMs)
         assertEquals(2, defaultSettings.pingTimeoutSec)
         assertEquals(30, defaultSettings.maxHops)
+        assertEquals("", defaultSettings.lastUsedHost)
     }
 
     @Test
