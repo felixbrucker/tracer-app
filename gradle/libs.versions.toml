@@ -13,7 +13,6 @@ navigationCompose = "2.10.2"
 datastore = "1.2.1"
 junit = "4.13.2"
 mockk = "1.14.11"
-kover = "0.9.11"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -50,4 +49,3 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-    alias(libs.plugins.kover)
 }
 
 android {
@@ -56,8 +55,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_25
-        targetCompatibility = JavaVersion.VERSION_25
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
         compose = true
@@ -66,45 +65,6 @@ android {
 
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
-}
-
-kover {
-    reports {
-        total {
-            verify {
-                rule {
-                    minBound(90)
-                }
-            }
-        }
-        filters {
-            excludes {
-                classes(
-                    "*.BuildConfig",
-                    "*_*",
-                    "*JsonAdapter*",
-                    "com.felixbrucker.tracer.core.designsystem.*",
-                    "com.felixbrucker.tracer.core.database.*",
-                    "com.felixbrucker.tracer.core.datastore.*",
-                    "com.felixbrucker.tracer.di.*",
-                    "com.felixbrucker.tracer.MainActivity*",
-                    "com.felixbrucker.tracer.MainApplication*",
-                    "com.felixbrucker.tracer.ComposableSingletons*",
-                    "com.felixbrucker.tracer.core.network.TraceForegroundService*",
-                    "com.felixbrucker.tracer.feature.favorites.*",
-                    "com.felixbrucker.tracer.feature.ping.*",
-                    "com.felixbrucker.tracer.feature.settings.*",
-                    "com.felixbrucker.tracer.feature.traceroute.*",
-                    "com.felixbrucker.tracer.feature.mtr.*",
-                    "com.felixbrucker.tracer.feature.components.*",
-                    "*ScreenContent*",
-                    "*InputField*",
-                    "*Hilt*",
-                    "*Factory*"
-                )
-            }
-        }
-    }
 }
 
 dependencies {

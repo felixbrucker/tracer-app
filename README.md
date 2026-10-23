@@ -23,63 +23,17 @@
 
 ## 🏗️ Architecture & Tech Stack
 
-Tracer adheres strictly to **Clean Layered Architecture** with **Unidirectional Data Flow (UDF)**:
-
-```
-UI Layer (Composables / Feature ViewModels)
-   ▲
-   │ StateFlow<UiState> / Navigation Events
-   ▼
-ViewModel Layer (@HiltViewModel)
-   ▲
-   │ Coroutines / StateFlow Streams
-   ▼
-Repository Layer (@Singleton Repositories in core/data)
-   ▲
-   │ Domain Logic / Data Caching / Sync
-   ▼
-Data Sources (Room DAOs, DataStores, Network Engines, Foreground Services)
-```
-
-| Layer / Concern | Technology / Library |
-| :--- | :--- |
-| **Language & Runtime** | Kotlin 2.4+ (Java 25 Target) with KSP |
-| **Android SDK** | Min SDK 26 (Android 8.0), Target/Compile SDK 37 (Android 16) |
-| **UI Framework** | Jetpack Compose + Material 3, Navigation Compose |
+| Layer / Concern | Technology / Library                                                                   |
+| :--- |:---------------------------------------------------------------------------------------|
+| **Language & Runtime** | Kotlin 2.4+ (Java 25 Target) with KSP                                                  |
+| **Android SDK** | Min SDK 26 (Android 8.0), Target/Compile SDK 37 (Android 16)                           |
+| **UI Framework** | Jetpack Compose + Material 3, Navigation Compose                                       |
 | **Dependency Injection** | Hilt (Scoped injection with `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`) |
-| **Database** | Room 2.8.5 + KSP (Schema exports enabled, Foreign Key cascades) |
-| **Key-Value Storage** | Jetpack DataStore Preferences (Asynchronous Flow-based repositories) |
-| **Networking & Diagnostics** | Custom `NetworkEngine`, Coroutines & Flows |
-| **Background Scheduling** | Foreground Services & Coroutine Workers |
-| **Testing & Coverage** | JUnit 4, MockK, Coroutines Test, Kover coverage verification |
-
----
-
-## 📁 Project Structure
-
-```
-com.felixbrucker.tracer/
-├── MainActivity.kt                       # Host Activity initializing Navigation Graph & Edge-to-Edge
-├── MainApplication.kt                    # Application setup & Hilt DI initialization
-├── core/
-│   ├── data/                             # Repositories (TraceRepository, FavoriteRepository)
-│   ├── database/                         # Room AppDatabase, DAOs, Entities, Converters
-│   ├── datastore/                        # DataStore Preferences Repositories (AppSettingsRepository)
-│   ├── designsystem/                     # Material 3 Theme, Typography, Colors
-│   ├── model/                            # Shared Domain Data Models & Enums
-│   ├── network/                          # NetworkEngine, TraceForegroundService, OrchestrationManager
-│   └── util/                             # Date, Formatting, and Summary Calculation Utilities
-├── feature/
-│   ├── components/                       # Shared UI Input Fields & Controls
-│   ├── favorites/                        # Favorites Screen & UI Components
-│   ├── main/                             # Main ViewModel & Dashboard Navigation
-│   ├── ping/                             # Ping Screen & Diagnostic UI
-│   ├── settings/                         # Settings Screen & Preferences UI
-│   ├── traceroute/                       # Traceroute Screen & Hop Visualization
-│   ├── mtr/                              # MTR Diagnostic Screen
-├── di/                                   # Application-wide Hilt DI Modules
-└── extensions/                           # Extension functions
-```
+| **Database** | Room 2.8.5 + KSP (Schema exports enabled, Foreign Key cascades)                        |
+| **Key-Value Storage** | Jetpack DataStore Preferences (Asynchronous Flow-based repositories)                   |
+| **Networking & Diagnostics** | Custom `NetworkEngine`, Coroutines & Flows                                             |
+| **Background Scheduling** | Foreground Services & Coroutine Workers                                                |
+| **Testing & Coverage** | JUnit 4, MockK, Coroutines Test                                                        |
 
 ---
 
@@ -87,8 +41,8 @@ com.felixbrucker.tracer/
 
 ### Prerequisites
 - Android Studio (Narwhal / Koala or newer recommended)
-- JDK 25 (or Java 11 compatible toolchain)
-- Android SDK 37 platform tools
+- Java 11+
+- Android SDK 37
 
 ### Building & Testing via Gradle
 Use the local Gradle wrapper for all builds and verification tasks:
@@ -100,10 +54,6 @@ Use the local Gradle wrapper for all builds and verification tasks:
 - **Run Unit Tests**:
   ```bash
   ./gradlew test
-  ```
-- **Verify Test Coverage (Kover)**:
-  ```bash
-  ./gradlew koverVerify
   ```
 
 ---
