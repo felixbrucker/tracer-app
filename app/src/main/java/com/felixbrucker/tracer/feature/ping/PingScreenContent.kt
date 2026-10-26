@@ -230,6 +230,9 @@ fun PingItemCard(ping: PingResult) {
 
 @Composable
 private fun rememberFormattedTime(timestamp: Long): String {
-    val sdf = SimpleDateFormat("HH:mm:ss", LocalLocale.current.platformLocale)
-    return sdf.format(Date(timestamp))
+    val locale = LocalLocale.current.platformLocale
+    return remember(timestamp, locale) {
+        val sdf = SimpleDateFormat("HH:mm:ss", locale)
+        sdf.format(Date(timestamp))
+    }
 }
