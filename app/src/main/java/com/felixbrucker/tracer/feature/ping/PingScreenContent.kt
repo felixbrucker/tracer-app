@@ -81,34 +81,15 @@ fun PingScreenContent(
 
 @Composable
 fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Boolean) {
-    // Single-pass computation avoiding intermediate List<Double> allocations on rapid updates
-    val (total, successful, failed, lossPct, hasRtt, minRtt, maxRtt, avgRtt) = remember(results) {
-        val count = results.size
-        var successCount = 0
-        var rttCount = 0
-        var rttSum = 0.0
-        var min = Double.MAX_VALUE
-        var max = 0.0
+    val total = results.size
+    val successful = results.count { it.isSuccess }
+    val failed = total - successful
+    val lossPct = if (total == 0) 0.0 else (failed.toDouble() / total.toDouble()) * 100.0
 
-        for (ping in results) {
-            if (ping.isSuccess) {
-                successCount++
-                ping.rttMs?.let { rtt ->
-                    rttCount++
-                    rttSum += rtt
-                    if (rtt < min) min = rtt
-                    if (rtt > max) max = rtt
-                }
-            }
-        }
-
-        val failedCount = count - successCount
-        val loss = if (count == 0) 0.0 else (failedCount.toDouble() / count.toDouble()) * 100.0
-        val avg = if (rttCount > 0) rttSum / rttCount else 0.0
-        val finalMin = if (rttCount > 0) min else 0.0
-
-        SummaryStats(count, successCount, failedCount, loss, rttCount > 0, finalMin, max, avg)
-    }
+    val rtts = results.mapNotNull { it.rttMs }
+    val minRtt = rtts.minOrNull() ?: 0.0
+    val maxRtt = rtts.maxOrNull() ?: 0.0
+    val avgRtt = if (rtts.isNotEmpty()) rtts.average() else 0.0
 
     Card(
         modifier = Modifier
@@ -132,7 +113,7 @@ fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Bo
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            if (hasRtt) {
+            if (rtts.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -149,17 +130,6 @@ fun PingSummaryCard(results: List<PingResult>, targetHost: String, isRunning: Bo
         }
     }
 }
-
-private data class SummaryStats(
-    val total: Int,
-    val successful: Int,
-    val failed: Int,
-    val lossPct: Double,
-    val hasRtt: Boolean,
-    val minRtt: Double,
-    val maxRtt: Double,
-    val avgRtt: Double
-)
 
 @Composable
 fun PingItemCard(ping: PingResult) {
